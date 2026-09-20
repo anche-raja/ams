@@ -1,0 +1,8 @@
+-- AMS_USERS
+-- Generated from the H2 test fixture; edit that and re-run the translator.
+CREATE TABLE IF NOT EXISTS AMS_USERS (
+  USER_ID        VARCHAR2(64 CHAR) NOT NULL,
+  EMAIL_ADDRESS  VARCHAR2(120 CHAR),
+  DISPLAY_NAME   VARCHAR2(120 CHAR),
+  CONSTRAINT AMS_USERS_PK PRIMARY KEY (USER_ID)
+);

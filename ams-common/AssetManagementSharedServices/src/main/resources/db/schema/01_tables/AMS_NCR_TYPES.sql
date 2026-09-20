@@ -1,0 +1,7 @@
+-- AMS_NCR_TYPES
+-- Generated from the H2 test fixture; edit that and re-run the translator.
+CREATE TABLE IF NOT EXISTS AMS_NCR_TYPES (
+  NCR_ID       NUMBER(19) NOT NULL,
+  NCR_TYPE_CD  VARCHAR2(20 CHAR) NOT NULL,
+  CONSTRAINT AMS_NCR_TYPES_PK PRIMARY KEY (NCR_ID, NCR_TYPE_CD)
+);

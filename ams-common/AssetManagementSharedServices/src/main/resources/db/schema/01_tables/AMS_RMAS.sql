@@ -1,0 +1,20 @@
+-- AMS_RMAS
+-- Generated from the H2 test fixture; edit that and re-run the translator.
+CREATE TABLE IF NOT EXISTS AMS_RMAS (
+  RMA_ID               NUMBER(19) NOT NULL,
+  RMA_NUMBER           VARCHAR2(40 CHAR),
+  ASSET_ID             NUMBER(19),
+  ASSET_TAG            VARCHAR2(40 CHAR),
+  TRACKING_NUMBER      VARCHAR2(60 CHAR),
+  SHIPPING_CARRIER_CD  VARCHAR2(20 CHAR),
+  RMA_STATUS_CD        VARCHAR2(20 CHAR),
+  ISSUED_DT            TIMESTAMP,
+  DUE_DT               TIMESTAMP,
+  RECEIVED_DT          TIMESTAMP,
+  REASON               VARCHAR2(400 CHAR),
+  CREATED_DT           TIMESTAMP,
+  CREATED_BY           VARCHAR2(64 CHAR),
+  MODIFIED_DT          TIMESTAMP,
+  MODIFIED_BY          VARCHAR2(64 CHAR),
+  CONSTRAINT AMS_RMAS_PK PRIMARY KEY (RMA_ID)
+);

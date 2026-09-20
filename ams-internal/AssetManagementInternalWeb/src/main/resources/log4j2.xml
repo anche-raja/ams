@@ -10,7 +10,11 @@
 <Configuration status="WARN" monitorInterval="60">
 
   <Properties>
-    <Property name="logDir">${sys:AppLogDir:-/logs}</Property>
+    <Property name="logDir">${sys:AppLogDir:-logs}</Property>
+    <!-- The fallback is relative on purpose. It used to be /logs, which only exists in the
+         container: running anywhere else, the JVM could not create it and Log4j2 failed soft -
+         the three RollingFile appenders died silently, taking alert.log with them. Relative
+         resolves under the server directory; the container still sets -DAppLogDir=/logs. -->
     <Property name="pattern">%d{ISO8601} AMS-INT %-5p [%l] %m%n</Property>
   </Properties>
 

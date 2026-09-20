@@ -1,17 +1,22 @@
-# Where Log4j2 writes; referenced as ${sys:AppLogDir} in log4j2.xml.
--DAppLogDir=/logs
+# Portable JVM options - these have to work both in the container and on a developer machine.
+#
+# Three options used to live here and have moved to the container, because they are container-only
+# and one of them is fatal elsewhere:
+#   -XX:+UseContainerSupport   Linux-only. On macOS HotSpot it is an unrecognized option and the
+#                              JVM refuses to start, so no native run was possible at all.
+#   -XX:MaxRAMPercentage=75.0  only meaningful alongside the flag above.
+#   -DAppLogDir=/logs          /logs exists in the image and nowhere else. log4j2.xml now falls
+#                              back to a relative "logs" directory when this is unset.
+# docker-compose.yml passes all three through JVM_ARGS, which the Liberty image already honours.
 
 # Chooses the security wiring: 'production' and 'qa' register the real WebSEAL header filter,
-# 'local', 'dev' and 'fit' register the developer stub. Overridden per environment at deploy time.
--Dspring.profiles.active=production
+# 'local', 'dev' and 'fit' register the developer stub. A native run has no proxy in front of it,
+# so it needs the stub; the container overrides this through JVM_ARGS.
+-Dspring.profiles.active=local
 
 -Djava.awt.headless=true
 -Dfile.encoding=UTF-8
 -Duser.timezone=America/New_York
-
-# Heap sized for the container's memory limit rather than the host's.
--XX:+UseContainerSupport
--XX:MaxRAMPercentage=75.0
 
 # Fail fast on an out of memory condition rather than limping on in a state nothing can trust.
 -XX:+ExitOnOutOfMemoryError

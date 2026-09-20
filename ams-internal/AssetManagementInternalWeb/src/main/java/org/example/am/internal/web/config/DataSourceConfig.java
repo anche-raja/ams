@@ -5,6 +5,10 @@ import javax.sql.DataSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.example.am.shared.schema.SchemaInstaller;
+import org.example.am.shared.utils.CommonConstants;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.jdbc.datasource.lookup.JndiDataSourceLookup;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -26,11 +30,24 @@ public class DataSourceConfig {
     public static final String DATA_SOURCE_JNDI_NAME = "jdbc/amsInternalDS";
 
     @Bean
-    public DataSource dataSource() {
+    public DataSource dataSource(final Environment environment) {
         final JndiDataSourceLookup lookup = new JndiDataSourceLookup();
         // Prefixes the name with java:comp/env, which is how the resource-ref in web.xml exposes it.
         lookup.setResourceRef(true);
-        return lookup.getDataSource(DATA_SOURCE_JNDI_NAME);
+        final DataSource dataSource = lookup.getDataSource(DATA_SOURCE_JNDI_NAME);
+
+        // Built here, inside the factory method, rather than by a separate initializer bean: this
+        // returns the DataSource only once the schema exists, so every bean that injects it is
+        // ordered behind the install with no @DependsOn graph to keep in step. On a server whose
+        // schema is already present this is two metadata queries and a count.
+        // Demonstration rows only outside production. Seeding invented customers into a real
+        // database would be a bug, so the decision is taken from the same profile that chooses the
+        // developer authentication stub over the WebSEAL filter.
+        final boolean nonProduction =
+                !environment.acceptsProfiles(Profiles.of(CommonConstants.PROFILE_PRODUCTION,
+                                                         CommonConstants.PROFILE_QA));
+        new SchemaInstaller().install(dataSource, nonProduction);
+        return dataSource;
     }
 
     @Bean

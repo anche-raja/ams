@@ -1,0 +1,10 @@
+-- AMS_ETL_RUNS
+-- Generated from the H2 test fixture; edit that and re-run the translator.
+CREATE TABLE IF NOT EXISTS AMS_ETL_RUNS (
+  ETL_RUN_ID      NUMBER(19) NOT NULL,
+  JOB_NAME        VARCHAR2(60 CHAR),
+  ETL_STATUS_CD   VARCHAR2(20 CHAR),
+  RUN_DT          TIMESTAMP,
+  ROWS_PROCESSED  NUMBER(19),
+  CONSTRAINT AMS_ETL_RUNS_PK PRIMARY KEY (ETL_RUN_ID)
+);

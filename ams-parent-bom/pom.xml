@@ -46,6 +46,8 @@
     <ezmorph.version>1.0.6</ezmorph.version>
 
     <h2.version>1.3.176</h2.version>
+    <liberty.plugin.version>3.11.4</liberty.plugin.version>
+    <openliberty.version>24.0.0.12</openliberty.version>
     <aspectj.version>1.7.4</aspectj.version>
     <junit.version>4.12</junit.version>
     <mockito.version>1.9.5</mockito.version>

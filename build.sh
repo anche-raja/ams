@@ -4,6 +4,8 @@
 #
 #   ./build.sh              clean install, all three reactors
 #   ./build.sh test         run the tests only
+#   ./build.sh run          build, then run the application natively - no Docker, no Oracle
+#   ./build.sh stop         stop a natively running server
 #   ./build.sh docker       build, then bring the whole stack up under docker compose
 set -euo pipefail
 
@@ -22,6 +24,31 @@ build_reactors() {
   done
   echo "==> all reactors built"
 }
+
+WEB_POM="$HERE/ams-internal/AssetManagementInternalWeb/pom.xml"
+
+# Embedded H2 is a file, and exactly one JVM may hold it. A server left behind by an earlier run -
+# or by a start that failed after the JVM came up - keeps the lock, and the next start fails with
+# "Database may be already in use" rather than anything that names the real problem.
+stop_native() {
+  mvn -q -f "$WEB_POM" -P native liberty:stop >/dev/null 2>&1 || true
+  pkill -f 'wlp.*amsInternal' >/dev/null 2>&1 || true
+}
+
+if [ "$GOAL" = "stop" ]; then
+  stop_native
+  echo "==> native server stopped"
+  exit 0
+fi
+
+if [ "$GOAL" = "run" ]; then
+  build_reactors install "$@"
+  stop_native
+  echo "==> liberty:dev (Ctrl-C to stop)"
+  # dev rather than run: it deploys the application loose, from target/classes and src/main/webapp,
+  # instead of copying the 37 MB WAR on every cycle - almost all of which is the vendored Dojo tree.
+  exec mvn -f "$WEB_POM" -P native liberty:dev
+fi
 
 if [ "$GOAL" = "docker" ]; then
   # The image copies target/AssetManagementInternalWeb.war, so the Maven build has to run first.

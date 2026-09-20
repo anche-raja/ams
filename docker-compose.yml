@@ -66,6 +66,9 @@ services:
         condition: service_healthy
     environment:
       # The four variables bootstrap.properties already interpolates.
+      # server.xml defaults to the embedded H2 driver for native runs; the container path selects
+      # Oracle by overriding the driver class alongside the URL.
+      AMS_DATASOURCE_CLASS: oracle.jdbc.pool.OracleDataSource
       AMS_DATASOURCE_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
       AMS_DATASOURCE_USER: ${AMS_DB_USER:-ams}
       AMS_DATASOURCE_PASSWORD: ${AMS_DB_PASSWORD:-ams_app_pw}
@@ -74,7 +77,14 @@ services:
       # correct for a deployment behind the proxy, but locally there is no proxy and every request
       # would 403. This selects DevWebSealRequestHeaderAuthenticationFilter instead, and leaves the
       # committed jvm.options production-correct.
-      JVM_ARGS: -Dspring.profiles.active=local
+      # The container-only JVM flags live here rather than in jvm.options: UseContainerSupport is
+      # Linux-only and makes the JVM refuse to start on a developer machine, and /logs exists
+      # only in this image. The production profile is what jvm.options would otherwise select.
+      JVM_ARGS: >-
+        -Dspring.profiles.active=local
+        -DAppLogDir=/logs
+        -XX:+UseContainerSupport
+        -XX:MaxRAMPercentage=75.0
       TZ: America/New_York
     ports:
       - "9081:9081"

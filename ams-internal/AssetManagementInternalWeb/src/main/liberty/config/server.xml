@@ -9,11 +9,32 @@
     <feature>servlet-3.1</feature>
     <feature>jsp-2.3</feature>
     <feature>jdbc-4.1</feature>
+    <!-- Required for DataSourceConfig's java:comp/env/jdbc/amsInternalDS lookup. It was absent
+         until the first native run: the websphere-liberty "-full-" image ships every feature, so
+         the omission was invisible in the container and fatal outside it. -->
+    <feature>jndi-1.0</feature>
     <feature>transportSecurity-1.0</feature>
     <feature>ssl-1.0</feature>
-    <feature>mpMetrics-1.1</feature>
-    <feature>mpHealth-4.0</feature>
   </featureManager>
+
+  <!--
+    mpMetrics-1.1 and mpHealth-4.0 used to be listed here and were removed: nothing in the
+    application imports org.eclipse.microprofile or carries @Health, @Counted, @Timed or @Gauge, and
+    /health is a Struts action (struts-health.xml -> HealthAction), which is what the container
+    healthcheck has always actually hit. They were also a feature-resolution hazard - mpHealth-4.0
+    is a Jakarta EE 9 feature while servlet-3.1 and jsp-2.3 are Java EE 7.
+  -->
+
+  <!--
+    Defaults so the server starts on a bare checkout with nothing exported. bootstrap.properties
+    still reads ${env.*} first, so a deployment overrides every one of these.
+  -->
+  <variable name="ams.datasource.url"
+            defaultValue="jdbc:h2:${server.config.dir}/data/ams;MVCC=TRUE;LOCK_TIMEOUT=5000;DB_CLOSE_ON_EXIT=FALSE"/>
+  <variable name="ams.datasource.class" defaultValue="org.h2.jdbcx.JdbcDataSource"/>
+  <variable name="ams.datasource.user" defaultValue="sa"/>
+  <variable name="ams.datasource.password" defaultValue=""/>
+  <variable name="keystore.password" defaultValue="amsLocalKeystorePw"/>
 
   <httpEndpoint id="defaultHttpEndpoint"
                 host="*"
@@ -35,7 +56,13 @@
     validation live here rather than in the application so they can be tuned per environment
     without a rebuild.
   -->
-  <library id="OracleJdbcLib">
+  <!--
+    Resolved relative to the server directory rather than an absolute container path: the driver is
+    put here by liberty-maven-plugin's copyDependencies, from the same Maven coordinates the tests
+    resolve, so a native run and a test run use one jar.
+  -->
+  <library id="AmsJdbcLib">
+    <fileset dir="${server.config.dir}/lib" includes="h2*.jar"/>
     <fileset dir="/config/configDropins/lib" includes="ojdbc8*.jar"/>
   </library>
 
@@ -43,13 +70,15 @@
               jndiName="jdbc/amsInternalDS"
               transactional="true"
               isolationLevel="TRANSACTION_READ_COMMITTED">
-    <jdbcDriver libraryRef="OracleJdbcLib"
-                javax.sql.DataSource="oracle.jdbc.pool.OracleDataSource"/>
-    <properties.oracle URL="${ams.datasource.url}"
-                       user="${ams.datasource.user}"
-                       password="${ams.datasource.password}"/>
+    <jdbcDriver libraryRef="AmsJdbcLib"
+                javax.sql.DataSource="${ams.datasource.class}"/>
+    <!-- Generic <properties>, not <properties.oracle>: Liberty maps these onto setters on the
+         vendor DataSource, and H2's JdbcDataSource has setURL/setUser/setPassword. -->
+    <properties URL="${ams.datasource.url}"
+                user="${ams.datasource.user}"
+                password="${ams.datasource.password}"/>
     <connectionManager id="amsInternalConnMgr"
-                       maxPoolSize="50"
+                       maxPoolSize="10"
                        minPoolSize="5"
                        connectionTimeout="30s"
                        agedTimeout="30m"

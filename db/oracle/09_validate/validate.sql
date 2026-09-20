@@ -51,7 +51,7 @@ BEGIN
   SELECT COUNT(*) INTO l_bodies    FROM USER_OBJECTS WHERE OBJECT_TYPE = 'PACKAGE BODY';
 
   assert_equals('tables',        35, l_tables);
-  assert_equals('sequences',     18, l_sequences);
+  assert_equals('sequences',     19, l_sequences);
   assert_equals('views',          1, l_views);
   assert_equals('packages',       3, l_packages);
   assert_equals('package bodies', 3, l_bodies);
