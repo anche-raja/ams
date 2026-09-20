@@ -2,61 +2,68 @@ package org.example.am.shared.dao.impl;
 
 import java.util.Date;
 
-import javax.sql.DataSource;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.example.am.shared.dao.StoredProcedureDAO;
-import org.example.am.shared.dao.procs.AddEntityEmailProcedure;
-import org.example.am.shared.dao.procs.CancelNCRDateProcedureComplex;
-import org.example.am.shared.dao.procs.CancelNCRDateProcedureSimple;
-import org.example.am.shared.dao.procs.ReserveTimeslotProcedure;
+import org.example.am.shared.dao.scheduling.EntityEmailDAO;
+import org.example.am.shared.dao.scheduling.NcrSchedulingDAO;
+import org.example.am.shared.dao.scheduling.SchedulingResult;
+import org.example.am.shared.dao.scheduling.TimeslotSchedulingDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+/**
+ * The scheduling and notification operations, as the shared services see them.
+ *
+ * <p>The interface, the bean name and every method signature are unchanged from when these were
+ * Oracle stored procedures. What has changed is underneath: the logic now lives in Java, in
+ * {@code org.example.am.shared.dao.scheduling}, and this class is a thin delegate.</p>
+ *
+ * <p>The name is kept deliberately. Renaming it would touch every caller and every bean reference
+ * for no behavioural gain, and the original PL/SQL is still on disk under
+ * {@code db/oracle/06_packages} as the specification the port was written from - so the connection
+ * is worth leaving visible.</p>
+ */
 @Repository("storedProcedureSharedDAO")
 public class StoredProcedureDAOImpl implements StoredProcedureDAO {
 
-    private static final Logger LOGGER = LogManager.getLogger(StoredProcedureDAOImpl.class);
+    @Autowired
+    private TimeslotSchedulingDAO timeslotSchedulingDAO;
 
-    private ReserveTimeslotProcedure reserveTimeslotProcedure;
-    private CancelNCRDateProcedureSimple cancelNcrDateSimple;
-    private CancelNCRDateProcedureComplex cancelNcrDateComplex;
-    private AddEntityEmailProcedure addEntityEmailProcedure;
+    @Autowired
+    private NcrSchedulingDAO ncrSchedulingDAO;
+
+    @Autowired
+    private EntityEmailDAO entityEmailDAO;
+
+    @Override
+    public String reserveTimeslot(final long timeslotId, final long entityId,
+            final String entityType, final Date scheduledDate, final String userId) {
+        return timeslotSchedulingDAO
+                .reserve(timeslotId, entityId, entityType, scheduledDate, userId)
+                .getStatus();
+    }
 
     /**
-     * Compiles every procedure once, on injection of the data source.
-     *
-     * <p>{@code StoredProcedure.compile()} reads the parameter metadata, so doing this per call
-     * would cost a round trip each time.</p>
+     * The {@code complex} flag chooses between releasing the date alone and also giving back every
+     * circuit window the request holds. It was never a procedure parameter - it selected which of
+     * two procedures to call, and it selects which of two methods to call now.
      */
-    @Autowired
-    public void init(final DataSource dataSource) {
-        reserveTimeslotProcedure = new ReserveTimeslotProcedure(dataSource);
-        cancelNcrDateSimple = new CancelNCRDateProcedureSimple(dataSource);
-        cancelNcrDateComplex = new CancelNCRDateProcedureComplex(dataSource);
-        addEntityEmailProcedure = new AddEntityEmailProcedure(dataSource);
-        LOGGER.info("Compiled {} shared stored procedures", Integer.valueOf(4));
-    }
-
     @Override
-    public String reserveTimeslot(final long timeslotId, final long entityId, final String entityType,
-            final Date scheduledDate, final String userId) {
-        return reserveTimeslotProcedure.reserve(timeslotId, entityId, entityType, scheduledDate, userId);
+    public String cancelNetworkChangeRequestDate(final long networkChangeRequestId,
+            final long assetId, final String reason, final boolean complex, final String userId) {
+        final SchedulingResult result = complex
+                ? ncrSchedulingDAO.cancelSiteTypeChange(networkChangeRequestId, reason, userId)
+                : ncrSchedulingDAO.cancelChangeDate(networkChangeRequestId, reason, userId);
+        return result.getStatus();
     }
 
-    @Override
-    public String cancelNetworkChangeRequestDate(final long networkChangeRequestId, final long assetId,
-            final String reason, final boolean complex, final String userId) {
-        if (complex) {
-            return cancelNcrDateComplex.cancel(networkChangeRequestId, assetId, reason, userId);
-        }
-        return cancelNcrDateSimple.cancel(networkChangeRequestId, reason, userId);
-    }
-
+    /**
+     * @return the id of the first genuinely queued notification, or {@code null} when every
+     *         recipient was suppressed, there were none, or the attempt failed
+     */
     @Override
     public Long addEntityEmail(final String entityTypeCode, final long entityId,
             final String templateCode, final String userId) {
-        return addEntityEmailProcedure.addEmail(entityTypeCode, entityId, templateCode, userId);
+        return entityEmailDAO.addEntityEmail(entityTypeCode, entityId, templateCode, userId)
+                .getEmailId();
     }
 }

@@ -92,7 +92,7 @@ public abstract class BaseScheduleServiceImpl implements ScheduleService {
         final String status = storedProcedureDAO.reserveTimeslot(timeslotId, entityId,
                 getEntityTypeCode(), scheduledDate, userId);
         final boolean reserved =
-                org.example.am.shared.dao.procs.ReserveTimeslotProcedure.STATUS_OK.equals(status);
+                org.example.am.shared.dao.scheduling.SchedulingStatus.OK.equals(status);
         if (!reserved) {
             // Losing the race is expected under load, not exceptional.
             LOGGER.info("Timeslot {} could not be reserved for {} {}: {}", Long.valueOf(timeslotId),

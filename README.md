@@ -56,50 +56,76 @@ database surrogate key; subclasses expose `public static final` singletons regis
 
 ## The database
 
-Oracle. The schema lives in `db/oracle/` and is built by `00_init.sh`, which the container runs on
-first boot:
+Embedded **H2**, in file mode, built at startup by
+`ams-common/.../shared/schema/SchemaInstaller` from the SQL in that module's main resources. There
+is no Oracle, no container, and no migration tool.
 
 | Directory | Contents |
 |---|---|
-| `01_tables/` | 35 tables — 32 translated from the H2 fixtures, plus three the PL/SQL and the ordering flow need |
-| `02_constraints/` | 69 check constraints, 32 foreign keys |
-| `03_indexes/` | 82 indexes |
-| `04_sequences/` | 18 sequences |
-| `05_views/` | `AMS_NCR_SCHEDULES_EXT_V` |
-| `06_packages/` | 3 package specs and 3 bodies — the 9 stored procedures the Java calls |
-| `07_seed/` | reference data, calendars and demo rows, in foreign-key order |
-| `09_validate/` | the acceptance gate |
+| `db/schema/01_tables/` | 35 tables |
+| `db/schema/02_constraints/` | 21 check constraints, 32 foreign keys |
+| `db/schema/03_indexes/` | 41 indexes |
+| `db/schema/04_sequences/` | 19 sequences |
+| `db/schema/05_views/` | `AMS_NCR_SCHEDULES_EXT_V` |
+| `db/seed/{core,demo,rolling}/` | see *One schema, two consumers* below |
 
-The table DDL is **generated from the H2 fixtures**, not hand-copied, so column names and types
-cannot drift from the schema the DAO tests run against.
+The DDL is the Oracle DDL, unchanged. H2 1.3.176 accepts `VARCHAR2(n CHAR)`, `NUMBER(19)`,
+`CREATE TABLE IF NOT EXISTS`, `SYSTIMESTAMP`, `DUAL`, `NVL`, `TRUNC`, `GREATEST` and `ROWNUM`
+natively, with no `MODE=Oracle` - which is why the same statements the DAOs issue have always run
+against both. The only casualty is six function-based indexes, which H2 has no equivalent for; they
+are commented rather than deleted, and `LDAPROLES_GROUP_IX` is the one that would matter at scale.
 
-Two tables exist only here, because the procedures cannot be written correctly without them:
-`AMS_TIMESLOT_RESERVATIONS` (a ledger behind `AMS_TIMESLOTS.RESERVED_COUNT`, without which
-`cancel_timeslot` would decrement blind and a double-cancel would eventually double-book a slot)
-and `AMS_CIRCUIT_WINDOWS` (what `p_circuit_window_id` and `p_released_count` refer to).
+**The nine stored procedures are now Java.** They live in
+`ams-common/.../shared/dao/scheduling` - `TimeslotSchedulingDAO`, `NcrSchedulingDAO` and
+`EntityEmailDAO`, one per original package. The two `StoredProcedureDAO` interfaces and their bean
+names are unchanged, so nothing that calls them changed; the original PL/SQL is kept under
+`db/oracle/06_packages` as the specification the port was written from.
 
-**No procedure commits.** The callers are inside a Spring `@Transactional` sharing the same
-connection, so a `COMMIT` in PL/SQL would silently commit the caller's work and destroy its
-rollback. Each takes a `SAVEPOINT` instead, so a status other than `OK` reliably means nothing was
-changed.
+Four properties carried over and are the ones to protect:
 
-`09_validate/validate.sql` is the acceptance gate and fails the container if the schema is wrong.
-It asserts object counts, that nothing is `INVALID`, and then **smoke-calls every one of the nine
-procedures**. That last part is not optional: Spring's `StoredProcedure` binds positionally and
-`compile()` never reads database metadata, so a signature mismatch is invisible until a user
-clicks the button. Nothing else in the build checks it.
+- **The ledger is the source of truth, not the counter.** `AMS_TIMESLOT_RESERVATIONS` records who
+  holds each place, which is what makes a double reserve take no second place and a double cancel
+  harmless. Without it a cancel would decrement blind and eventually hand a place out twice.
+- **`SELECT ... FOR UPDATE` around the capacity test and the increment**, with the five-second bound
+  that used to be `WAIT 5` now on the connection URL as `LOCK_TIMEOUT=5000`. It exists because
+  Liberty's `connectionTimeout` bounds pool waits, not query waits.
+- **`TIMESLOTS_RESERVED_CK` is the backstop.** A counter bug fails loudly instead of double-booking
+  an engineer.
+- **`AVAILABLE_FL` is never written.** It means "ops opened this slot", not "this slot has room".
 
-## Running the whole stack
+Nothing commits. Each operation takes a savepoint on the caller's connection and rolls back to it on
+any outcome other than `OK`, so a non-`OK` status reliably means nothing changed -
+`RescheduleNcrAction` depends on cancel-then-reserve being one abandonable unit.
+
+## Running
+
+```bash
+./build.sh run     # builds, then starts the application natively - no Docker, no Oracle
+./build.sh stop    # stops it
+```
+
+That is the whole story: a JDK and Maven, nothing else. Liberty is fetched by
+`liberty-maven-plugin` and the database is an embedded H2 file under the server directory, built and
+seeded on first start by `SchemaInstaller`.
+
+`liberty:dev` is what `run` uses, deliberately rather than `liberty:run`: it deploys the application
+loose, from `target/classes` and `src/main/webapp`, instead of copying the 37 MB WAR on every cycle -
+almost all of which is the vendored Dojo tree.
+
+Embedded H2 is a file, and exactly one JVM may hold it. A server left behind by an earlier run keeps
+the lock and the next start fails with "Database may be already in use", which names the symptom and
+not the cause - so `run` and `stop` both clear strays first.
+
+### The Oracle stack
+
+`docker-compose.yml` and `db/oracle` are kept but unwired. The container path still works -
+`server.xml` takes its JDBC driver class from a variable and compose sets it to Oracle - but nothing
+maintains it, and the PL/SQL under `db/oracle/06_packages` is now reference material rather than
+running code: it is the specification the Java port was written from.
 
 ```bash
 ./build.sh docker
 ```
-
-Builds the three reactors, then `docker compose up --build`: Oracle 23ai Free plus the Liberty
-application wired to it. The app waits for the database to report healthy. First boot builds the
-schema and runs the gate — watch it with `docker compose logs -f oracle`.
-
-`docker compose up -d oracle` brings up just the database if you only want somewhere to point at.
 
 ## Deploying
 
@@ -218,12 +244,25 @@ of their own: a window is warehouse capacity per region per day, which is exactl
 already models, so booking one goes through the same reservation procedure and the same ledger as
 everything else.
 
-## Two schemas to keep in step
+## One schema, two consumers
 
-The H2 fixtures under `src/test/resources/sql` and the Oracle DDL under `db/oracle` describe the
-same tables and both have to be changed together. The Oracle table DDL is generated from the H2
-files by a translator for exactly that reason, but the seed data and the two Oracle-only tables
-are not — when a column changes, check both.
+`ams-common/AssetManagementSharedServices/src/main/resources/db` is the schema, and both the tests
+and the running server load the identical files from it over the ordinary compile dependency. There
+used to be a second copy under `src/test/resources/sql` describing the same tables; it was the
+subset, missing both ledger tables and all 53 constraints, and it is gone.
+
+The seed is tiered, because the three tiers have genuinely different lifetimes:
+
+| Tier | When it runs | Who gets it |
+|---|---|---|
+| `db/seed/core` | once, on an empty database | tests and the running app |
+| `db/seed/demo` | once, on an empty database | non-production profiles only |
+| `db/seed/rolling` | **every start** | non-production profiles only |
+
+The rolling tier is calendar capacity, generated relative to today. The Oracle original made it once
+at container first boot, which meant that on a database more than three weeks old the despatch and
+installation screens were silently empty. A persistent embedded file makes that more likely, not
+less. The scripts clear only future slots nobody holds, so re-applying never strands a booking.
 
 ## Demonstration data
 

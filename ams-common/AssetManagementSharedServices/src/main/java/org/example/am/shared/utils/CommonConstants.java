@@ -36,7 +36,10 @@ public final class CommonConstants {
     public static final String SEQ_MAINTENANCE_WINDOWS = "AMS_MAINT_WINDOWS_SQ";
     public static final String SEQ_ASSETS = "AMS_ASSETS_SQ";
     public static final String SEQ_INSTALLATIONS = "AMS_INSTALLATIONS_SQ";
-    public static final String PKG_NCR_SCHEDULING = "AMS_NCR_SCHEDULING_PG";
+    public static final String SEQ_EMAIL_QUEUE = "AMS_EMAIL_QUEUE_SQ";
+    public static final String SEQ_DECOMMISSIONS = "AMS_DECOMMISSIONS_SQ";
+    public static final String SEQ_TIMESLOT_RESERVATIONS = "AMS_TIMESLOT_RESERVATIONS_SQ";
+    public static final String SEQ_CIRCUIT_WINDOWS = "AMS_CIRCUIT_WINDOWS_SQ";
 
     /** Spring profile names; the security wiring is gated on these. */
     public static final String PROFILE_LOCAL = "local";

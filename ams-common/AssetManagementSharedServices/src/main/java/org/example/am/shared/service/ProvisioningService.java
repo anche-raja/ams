@@ -9,7 +9,7 @@ import org.example.am.shared.domain.AssetType;
  * <p>Two steps, because in the real world they happen days apart and the states in between are
  * what operations needs to see: the warehouse despatches the box, then an engineer fits it. The
  * calendar booking sits between the two and is unchanged - it already moves the order to
- * {@code SCHEDULED} through {@code AMS_SCHEDULING_PG}.</p>
+ * {@code SCHEDULED} through the timeslot scheduling DAO.</p>
  *
  * <pre>
  *   order SUBMITTED  --despatch-->  SHIPPED    asset ORDERED -> SHIPPED, installation NOTSCHED

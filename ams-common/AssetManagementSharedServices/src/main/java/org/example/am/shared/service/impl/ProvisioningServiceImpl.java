@@ -102,7 +102,7 @@ public class ProvisioningServiceImpl implements ProvisioningService {
         }
 
         // Raised unscheduled: the calendar books it separately, which is what moves the order to
-        // SCHEDULED through AMS_SCHEDULING_PG.
+        // SCHEDULED through the timeslot scheduling DAO.
         installationDAO.insertInstallation(orderId, assetId,
                 order.getShipAddressId(), order.getInstallationContactId(), userId);
 

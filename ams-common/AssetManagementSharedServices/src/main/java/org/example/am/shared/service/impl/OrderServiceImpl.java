@@ -45,7 +45,7 @@ public class OrderServiceImpl implements OrderService {
 
     /** The success status every AMS scheduling procedure returns. */
     private static final String STATUS_OK =
-            org.example.am.shared.dao.procs.ReserveTimeslotProcedure.STATUS_OK;
+            org.example.am.shared.dao.scheduling.SchedulingStatus.OK;
 
     @Autowired
     private OrderDAO orderDAO;

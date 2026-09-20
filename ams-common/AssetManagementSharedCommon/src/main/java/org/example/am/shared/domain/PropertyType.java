@@ -36,6 +36,7 @@ public final class PropertyType extends LoadableType {
     public static final PropertyType SUBSCRIBER_STATIC_START = register("SUBSTATSTART", "First host number handed to a static subscriber machine", Long.valueOf(17L));
     public static final PropertyType DEFAULT_WAN_SUBNET = register("DEFWANSUBNET", "Network address of the WAN pool a first site is numbered from", Long.valueOf(18L));
     public static final PropertyType DEFAULT_WAN_MASK = register("DEFWANMASK", "Subnet mask of the WAN pool a first site is numbered from", Long.valueOf(19L));
+    public static final PropertyType EMAIL_DEDUP_MINUTES = register("EMAILDEDUPMIN", "Minutes within which a repeated notification is suppressed rather than queued", Long.valueOf(20L));
 
     private PropertyType(final String code, final String description, final Long databaseId) {
         super(code, description, databaseId);

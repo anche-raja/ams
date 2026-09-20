@@ -18,7 +18,8 @@ that file is the only place to change one.
 |---|---|---|
 | Source / target level | **Java 8** (`1.8`) | `maven.compiler.source` / `.target` |
 | Build JDK | Zulu **17.0.18** LTS | `build.sh` (`JAVA_HOME`) |
-| Runtime JVM | IBM J9 **1.8.0_503** (SR8 FP71) | base image |
+| Runtime JVM (native) | **Zulu 17.0.18** | `./build.sh run` |
+| Runtime JVM (container) | IBM J9 1.8.0_503 | base image |
 | Maven | **3.9.16** | developer machine |
 | Artifact version | `1.0.0-SNAPSHOT` | `ams.version` |
 
@@ -46,18 +47,20 @@ The build compiles *down* to Java 8 on a JDK 17 toolchain. Compiled classes carr
 | Servlet API | **3.1.0** | `javax.*`, `provided` scope, `web-app_3_1` |
 | JSTL | 1.2 | |
 | javax.annotation | 1.3.2 | |
-| Liberty | WebSphere **26.0.0.8** | `websphere-liberty:26.0.0.8-full-java8-ibmjava` |
-| Liberty features | `servlet-3.1`, `jsp-2.3`, `jdbc-4.1`, `transportSecurity-1.0`, `ssl-1.0`, `mpMetrics-1.1`, `mpHealth-4.0` | `server.xml` |
+| Liberty (native) | Open Liberty **24.0.0.12** via `liberty-maven-plugin` 3.11.4 |
+| Liberty (container) | WebSphere **26.0.0.8** | `websphere-liberty:26.0.0.8-full-java8-ibmjava` |
+| Liberty features | `servlet-3.1`, `jsp-2.3`, `jdbc-4.1`, `jndi-1.0`, `transportSecurity-1.0`, `ssl-1.0` | `server.xml` |
 | Dojo Toolkit | **1.17.3** | vendored, ~11,000 files, restored per environment |
 
 ## Data
 
 | Component | Version | Notes |
 |---|---|---|
-| **Oracle server** | **26ai Free, 23.26.2.0.0** | image `gvenzl/oracle-free:23-slim` |
+| **H2 (runtime + tests)** | **1.3.176** | embedded, file mode; no server, no install |
+| Oracle server *(unwired)* | 26ai Free, 23.26.2.0.0 | `docker compose up` only |
 | JDBC driver — runtime | **ojdbc8 23.8.0.25.04** | copied into the image; supplied per environment |
 | JDBC driver — build/test | ojdbc8 **12.2.0.1** | `ojdbc8.version`, test scope only |
-| H2 — test fixtures | **1.3.176** | in-memory, recreated per test JVM |
+| H2 — tests | 1.3.176 | in-memory, recreated per test JVM, same DDL as runtime |
 
 The two driver versions are intentional and documented in the Dockerfile: the runtime driver matches
 the 23ai server it talks to, while the build compiles and tests against the older one. They never

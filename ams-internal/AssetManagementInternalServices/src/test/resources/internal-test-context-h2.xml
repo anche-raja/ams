@@ -17,88 +17,31 @@
     the DDL, so the two schemas cannot drift apart. Only the tables the internal module adds are
     defined here.
   -->
-  <jdbc:embedded-database id="dataSource" type="H2">
+  <!--
+    Integration test data source.
 
-    <!-- Shared schema, from the AssetManagementSharedServices test-jar -->
-    <jdbc:script location="classpath:sql/tables/AMS_ADDRESSES.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_ASSETS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_ASSET_CONFIGS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_ASSET_RETURNS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_CONTACTS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_CUSTOMERS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_CUSTOMER_EARLY_ADOPTERS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_CUSTOMER_SCHEDULES.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_DECOMMISSIONS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_EMAIL_QUEUE.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_ETL_RUNS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_EVENTS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_HOLIDAYS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_INSTALLATIONS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_INSTALL_REGIONS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_LOADABLE_TYPES.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_MAINTENANCE_WINDOWS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_MODIFY_QUEUE.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_NCR_TYPES.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_NETWORK_CHANGE_REQUESTS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_ORDERS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_PORT_CONFIGS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_PROPERTIES.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_RMAS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_SAVE_FOR_LATER.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_SERVICES.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_SUBSCRIBER_PCS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_TERMS_ACCEPTANCES.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_TERMS_AND_CONDITIONS.sql"/>
-    <jdbc:script location="classpath:sql/tables/AMS_TIMESLOTS.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_ADDRESSES_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_ASSETS_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_ASSET_CONFIGS_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_ASSET_RETURNS_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_CONTACTS_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_DECOMMISSIONS_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_EMAIL_QUEUE_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_EVENTS_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_MODIFY_QUEUE_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_NCR_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_ORDERS_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_RMAS_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_SAVE_FOR_LATER_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_MAINT_WINDOWS_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_SUBSCRIBER_PCS_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_INSTALLATIONS_SQ.sql"/>
-    <jdbc:script location="classpath:sql/sequences/AMS_TIMESLOTS_SQ.sql"/>
-    <jdbc:script location="classpath:sql/views/AMS_NCR_SCHEDULES_EXT_V.sql"/>
+    An embedded H2 database, built from the same SQL the running application installs - the
+    canonical schema under db/schema and db/seed/core in this module's main resources, reached here
+    over the ordinary classpath. There used to be a parallel fixture tree under src/test/resources
+    that described the same tables; it was the subset, missing both ledger tables and every
+    constraint, and it is gone. Tests and the running server now load identical bytes.
 
-    <!-- Internal-only tables -->
-    <jdbc:script location="classpath:sql/internal/AMS_CUSTOMER_VISITS.sql"/>
-    <jdbc:script location="classpath:sql/internal/AMS_LDAP_GROUP_ROLES.sql"/>
-    <jdbc:script location="classpath:sql/internal/AMS_USERS.sql"/>
+    Every statement the DAOs issue is written in the subset that both Oracle and H2 accept: DUAL,
+    SYSTIMESTAMP, sequence NEXTVAL, ROWNUM, NVL, GREATEST and TRUNC all behave the same in both,
+    which is why no MODE=Oracle is set.
 
-    <!-- Seed data -->
-    <jdbc:script location="classpath:sql/data/AMS_ADDRESSES.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_ASSETS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_ASSET_CONFIGS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_CONTACTS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_CUSTOMERS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_CUSTOMER_EARLY_ADOPTERS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_CUSTOMER_SCHEDULES.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_DECOMMISSIONS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_ETL_RUNS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_HOLIDAYS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_INSTALL_REGIONS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_LOADABLE_TYPES.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_MAINTENANCE_WINDOWS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_MODIFY_QUEUE.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_NCR_TYPES.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_NETWORK_CHANGE_REQUESTS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_ORDERS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_PORT_CONFIGS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_PROPERTIES.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_RMAS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_SERVICES.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_TERMS_AND_CONDITIONS.sql"/>
-    <jdbc:script location="classpath:sql/data/AMS_TIMESLOTS.sql"/>
-    <jdbc:script location="classpath:sql/internal/data.sql"/>
+    MVCC and LOCK_TIMEOUT are not decoration. The scheduling DAOs take row locks with SELECT ...
+    FOR UPDATE, and the five-second bound that used to be "WAIT 5" in PL/SQL now lives on the URL.
+  -->
+  <jdbc:embedded-database id="dataSource" type="H2"
+                          database-name="ams;MVCC=TRUE;LOCK_TIMEOUT=5000">
+
+    <jdbc:script location="classpath*:db/schema/01_tables/*.sql"/>
+    <jdbc:script location="classpath*:db/schema/04_sequences/*.sql"/>
+    <jdbc:script location="classpath*:db/schema/05_views/*.sql"/>
+    <jdbc:script location="classpath*:db/schema/02_constraints/*.sql"/>
+    <jdbc:script location="classpath*:db/schema/03_indexes/*.sql"/>
+    <jdbc:script location="classpath*:db/seed/core/*.sql"/>
   </jdbc:embedded-database>
 
   <bean id="transactionManager"

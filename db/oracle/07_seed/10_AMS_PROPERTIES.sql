@@ -29,3 +29,7 @@ INSERT INTO AMS_PROPERTIES (PROPERTY_KEY, PROPERTY_VALUE, DESCRIPTION) VALUES ('
 -- so this has to be routable public space or the values it produces will not pass the screen.
 INSERT INTO AMS_PROPERTIES (PROPERTY_KEY, PROPERTY_VALUE, DESCRIPTION) VALUES ('DEFWANSUBNET', '198.51.45.0', 'Network address of the WAN pool a first site is numbered from');
 INSERT INTO AMS_PROPERTIES (PROPERTY_KEY, PROPERTY_VALUE, DESCRIPTION) VALUES ('DEFWANMASK', '255.255.255.0', 'Subnet mask of the WAN pool a first site is numbered from');
+-- Suppression window for repeated notifications. AMS_EMAIL_PG read this key and defaulted to 60
+-- when it was absent; the ported EntityEmailDAO keeps the same default, so this row is a knob
+-- rather than a requirement.
+INSERT INTO AMS_PROPERTIES (PROPERTY_KEY, PROPERTY_VALUE, DESCRIPTION) VALUES ('EMAILDEDUPMIN', '60', 'Minutes within which a repeated notification is suppressed rather than queued');

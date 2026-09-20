@@ -65,6 +65,17 @@ public class SchemaInstaller {
      */
     private static final String DEMO_SEED_LOCATION = "classpath*:db/seed/demo/*.sql";
 
+    /**
+     * Calendar capacity, re-applied on <em>every</em> start rather than only on an empty database.
+     *
+     * <p>These windows are generated relative to the current date. The Oracle original made them
+     * once, at container first boot, which meant that on a database more than three weeks old the
+     * despatch and installation screens were quietly empty with nothing to say why. A persistent
+     * embedded file makes that failure more likely, not less, so this tier rolls forward each time.
+     * The scripts clear only future slots nobody holds, so re-applying never strands a booking.</p>
+     */
+    private static final String ROLLING_SEED_LOCATION = "classpath*:db/seed/rolling/*.sql";
+
     /** Cheapest question that distinguishes "no schema" from "schema but no data". */
     private static final String COUNT_CUSTOMERS = "SELECT COUNT(*) FROM AMS_CUSTOMERS";
 
@@ -91,16 +102,21 @@ public class SchemaInstaller {
                 run(connection, location);
             }
 
-            if (alreadyBuilt && countCustomers(connection) > 0) {
-                LOGGER.info("Schema already present and seeded; nothing to do");
-                return;
+            final boolean seeded = alreadyBuilt && countCustomers(connection) > 0;
+            if (!seeded) {
+                run(connection, CORE_SEED_LOCATION);
+                if (includeDemoData) {
+                    run(connection, DEMO_SEED_LOCATION);
+                }
             }
-            run(connection, CORE_SEED_LOCATION);
             if (includeDemoData) {
-                run(connection, DEMO_SEED_LOCATION);
+                run(connection, ROLLING_SEED_LOCATION);
             }
-            LOGGER.info("Schema built and seeded with {} customers (demo data: {})",
-                    Integer.valueOf(countCustomers(connection)), Boolean.valueOf(includeDemoData));
+            LOGGER.info("Schema ready: {} customers, {} bookable windows (demo data: {}, {})",
+                    Integer.valueOf(countCustomers(connection)),
+                    Integer.valueOf(countBookableWindows(connection)),
+                    Boolean.valueOf(includeDemoData),
+                    seeded ? "seed already present" : "seed applied");
         } catch (final SQLException | IOException failure) {
             // Deliberately fatal. An application that starts against a half-built schema fails
             // later, somewhere else, in a way nobody can trace back to here.
@@ -133,6 +149,16 @@ public class SchemaInstaller {
         try (ResultSet tables = connection.getMetaData()
                 .getTables(null, null, tableName, new String[] {"TABLE"})) {
             return tables.next();
+        }
+    }
+
+    /** What the despatch and installation screens will actually be able to offer. */
+    private static int countBookableWindows(final Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement();
+             ResultSet rows = statement.executeQuery(
+                     "SELECT COUNT(*) FROM AMS_TIMESLOTS WHERE START_TM > CURRENT_TIMESTAMP "
+                     + "AND AVAILABLE_FL = 'Y' AND RESERVED_COUNT < CAPACITY")) {
+            return rows.next() ? rows.getInt(1) : 0;
         }
     }
 
