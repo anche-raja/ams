@@ -22,15 +22,6 @@
         <param name="root">model</param>
       </result>
     </action>
-
-    <action name="SavedForms" class="SavedFormAction" method="listSavedForms">
-      <result>/WEB-INF/common/savedForms.jsp</result>
-    </action>
-
-    <action name="States" class="StateAction" method="listStates">
-      <interceptor-ref name="basicStack"/>
-      <result type="json"/>
-    </action>
   </package>
 
 </struts>

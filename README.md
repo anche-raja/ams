@@ -6,6 +6,20 @@ and the entire bootstrap is driven by `web.xml`.
 
 Every dependency version, where it is declared, and what blocks each upgrade: [TECH_STACK.md](TECH_STACK.md).
 
+**One flow, the whole stack.** The application does one thing: an operator places a *new install
+order* for a customer - site, device, installation appointment - and gets a receipt. That single
+flow is kept deliberately small while still passing through every layer of the stack: Struts 2
+actions, interceptors, `ModelDriven` session state and a JSON endpoint; Spring Security
+pre-authentication and CSRF; the one Spring MVC controller; `@Transactional` services over
+hand-written Spring JDBC; the Java port of the scheduling stored procedure; the network
+validators; the address validation REST client (Jackson); and the embedded H2 schema. See
+[Placing an install order](#placing-an-install-order).
+
+The earlier screens - dashboard, asset search and detail, customer admin, the six-step order,
+cancellation, decommission, network change requests, provisioning, calendars, admin utilities and
+user impersonation - have been removed, together with the services, DAOs and stored-procedure
+ports only they used. The schema is unchanged.
+
 ## Layout
 
 Three Maven reactors, built in this order:
@@ -107,11 +121,12 @@ natively, with no `MODE=Oracle` - which is why the same statements the DAOs issu
 against both. The only casualty is six function-based indexes, which H2 has no equivalent for; they
 are commented rather than deleted, and `LDAPROLES_GROUP_IX` is the one that would matter at scale.
 
-**The nine stored procedures are now Java.** They live in
-`ams-common/.../shared/dao/scheduling` - `TimeslotSchedulingDAO`, `NcrSchedulingDAO` and
-`EntityEmailDAO`, one per original package. The two `StoredProcedureDAO` interfaces and their bean
-names are unchanged, so nothing that calls them changed; the original PL/SQL is kept under
-`db/oracle/06_packages` as the specification the port was written from.
+**The stored procedures are now Java.** The ones the install order uses live in
+`ams-common/.../shared/dao/scheduling`: `TimeslotSchedulingDAO` (reserve and cancel a calendar
+place) and `EntityEmailDAO` (queue a notification). The shared `StoredProcedureDAO` interface and
+its bean name are unchanged. The network change and decommission procedures went with the screens
+that called them; the original PL/SQL for all nine is kept under `db/oracle/06_packages` as the
+specification the port was written from.
 
 Four properties carried over and are the ones to protect:
 
@@ -126,8 +141,8 @@ Four properties carried over and are the ones to protect:
 - **`AVAILABLE_FL` is never written.** It means "ops opened this slot", not "this slot has room".
 
 Nothing commits. Each operation takes a savepoint on the caller's connection and rolls back to it on
-any outcome other than `OK`, so a non-`OK` status reliably means nothing changed -
-`RescheduleNcrAction` depends on cancel-then-reserve being one abandonable unit.
+any outcome other than `OK`, so a non-`OK` status reliably means nothing changed - placing an
+install order writes the order, its installation and the reservation as one abandonable unit.
 
 ## Running
 
@@ -224,7 +239,7 @@ fixed identity when no proxy is in front of the container. Set it in `jvm.option
 
 ## Testing
 
-239 tests across the five code modules.
+242 tests across the five code modules.
 
 DAO and service integration tests run against an embedded H2 database created by the DDL scripts
 under `src/test/resources/sql` — one file per table, plus sequences, a view and seed data, wired up
@@ -240,7 +255,7 @@ every result JSP actually exists.
 
 ## Deviations from the specification
 
-Seven, all deliberate:
+Five, all deliberate:
 
 1. **Packaging plugin versions.** `maven-war-plugin` 2.6 and `maven-ear-plugin` 2.8 cannot load
    under Maven 3.9 — they fail with a Plexus API incompatibility before the build starts. Bumped
@@ -265,56 +280,45 @@ Seven, all deliberate:
    services module resolves roles and has to return an `AmsUser`, and it cannot depend on the WAR.
    The filters, provider and CSRF matcher are in `web.security` as specified.
 
-5. **Search grid markup.** The specification describes the search action building inline HTML
-   anchors into its grid rows. The action returns a flat `AssetGridRow` of plain values instead and
-   the JSP builds the links from the identifiers, so an asset tag or serial containing markup is
-   escaped rather than rendered. Sending markup from the action would make every asset field a
-   stored XSS vector.
-
-6. **Legacy outer-join syntax.** Oracle's `(+)` syntax appears once, in `AmsServicesDAOImpl`, and
-   is marked Oracle-only. Everything else uses ANSI joins so the SQL can be exercised against H2.
-
-7. **Dojo Toolkit.** `js/dojo-release-1.17.3/` is present but empty, with a README explaining what
+5. **Dojo Toolkit.** `js/dojo-release-1.17.3/` is present but empty, with a README explaining what
    belongs there. The toolkit is a third-party distribution of several thousand files.
    `js/common.js` is written against the DOM directly and does not depend on it.
 
-## Ordering an asset
+## Placing an install order
 
-The ordering flow collects everything needed to stage a device and get it to site, in six steps.
-Each validates its own input; the partly completed order lives in the session, so nothing is
+Start from the home page (`/Home.action`, where the context root redirects): it lists the customers,
+and **New install order** against one of them makes it the session's customer and opens the flow.
+Each step validates its own input; the partly completed order lives in the session, so nothing is
 written until it is placed and an abandoned order leaves no rows behind.
 
-| Step | Screen | What it collects |
-|---|---|---|
-| 0 | New order | Order type, and for a replacement the asset it replaces |
-| 1 | Contact information | Ordering, shipping and installation contacts |
-| 2 | Address | Shipping and installation address, checked against the address validation service |
-| 3 | Device details | Device nickname and the weekly maintenance window |
-| 4 | External configuration | WAN and LAN addressing, run through the WAN and LAN validators |
-| 5 | Subscriber PCs | The machines that will sit behind the device |
-| 6 | Despatch window | The shipping window, then **Place order** |
+| Step | Screen | What it collects | What it exercises |
+|---|---|---|---|
+| 1 | Site | Site contact and installation address | address validation interceptor and REST client (Jackson); commons-validator |
+| 2 | Device | Nickname, WAN and LAN addressing | the `AssetManagementNetworkValidation` module (commons-lang 2) |
+| 3 | Appointment | An installation slot, then **Place order** | a JSON action behind the AJAX-token stack; the scheduling port |
+| - | Confirmation | - (the receipt, read back from the database) | the detail read across five tables |
 
-There is **no review step**. Every step validates as it is left and the place step re-validates the
-whole model, so a review page would only repeat what the user had just been through. The
-confirmation page is the receipt: it is the one place the whole order is shown together.
+There is **no review step**. Every step validates as it is left and Place order re-validates the
+whole model, so a review page would only repeat what the user had just been through.
+
+Placing the order is one transaction in `OrderServiceImpl.placeInstallOrder`: the site address and
+contact, the order row, the device configuration, an `AMS_INSTALLATIONS` row, the `INSTALL`
+reservation through `TimeslotSchedulingDAO` (which moves both the installation and the order to
+`SCHEDULED`), an audit event and a queued confirmation email.
 
 Three things are worth knowing about how this behaves:
 
-- **The despatch window is not held while it is being looked at.** It is reserved through
-  `AMS_SCHEDULING_PG.reserve_timeslot` at the moment the order is placed. If it fills in between,
-  the order is still placed — there is no review step to go back to, and discarding six screens of
-  keyed data over a warehouse slot would be the wrong trade — but `SHIP_WINDOW_ID` is left null so
-  nothing claims capacity the reservation ledger does not back, and the confirmation says so.
-- **A postcode with no warehouse region yields no windows.** That is a gap in
-  `AMS_INSTALL_REGIONS`, not an error: the order can still be placed and operations assign a window
-  by hand.
-- **Address validation never blocks an order.** A correction is offered for the user to accept or
-  refuse, and an outage lets the address through marked unverified.
-
-Despatch windows are carried on `AMS_TIMESLOTS` with `CALL_TYPE_CD = 'SHIP'` rather than in a table
-of their own: a window is warehouse capacity per region per day, which is exactly what that table
-already models, so booking one goes through the same reservation procedure and the same ledger as
-everything else.
+- **The appointment is not held while it is being looked at.** The slots are fetched as JSON when
+  the page opens and reserved only when the order is placed. If the chosen one fills in between,
+  the order is still placed - discarding three screens of keyed data over an engineer's morning
+  would be the wrong trade - but the installation stays `NOTSCHED` and the confirmation says so.
+- **A ZIP code with no engineer region yields no slots.** That is a gap in `AMS_INSTALL_REGIONS`,
+  not an error: the order can still be placed and operations book the visit by hand. The seeded
+  regions cover 78701, 62704, 73301 and 60601 (CENTRAL), 10001, 02108 and 19103 (NORTHEAST), and
+  97201, 98101 and 94105 (WEST).
+- **Address validation never blocks an order.** A correction is offered on the site page for the
+  user to accept or refuse, and an outage lets the address through marked unverified. Locally the
+  stub service offers a correction for most addresses, so expect to be asked.
 
 ## One schema, two consumers
 
@@ -343,7 +347,7 @@ for some DAO test, so it is not safe to add to and not much to look at. Two late
 driving the portal instead.
 
 `07_seed/38_AMS_DEMO_LIFECYCLE.sql` adds four customers, each parked at a different point in the
-lifecycle so that every screen has something real on it:
+lifecycle:
 
 | Customer | Region | State |
 |---|---|---|
@@ -402,6 +406,26 @@ taken away. Aged-out windows in the past are normal and are not an error — `va
 how many have aged out but only fails when there are no bookable future ones left.
 
 ## Verification status
+
+After the reduction to the install order flow, on the native stack (`./build.sh run`, embedded H2,
+fresh database), 25 September 2026:
+
+| Check | Result |
+|---|---|
+| `./build.sh` - all three reactors | 242 tests, 0 failures |
+| Install order end to end over HTTPS | order placed; receipt shows site, contact, WAN/LAN, notes and the booked slot |
+| Appointment reservation | order and installation both `SCHEDULED` through the scheduling port |
+| Field validation | contact, address, WAN (RFC 1918) and LAN type A errors shown on the right step |
+| Skipping ahead by URL | redirected to the first incomplete step; no order in progress goes home |
+| Address correction offered | shown on the site page; accepting it continues to the device step |
+| `AppointmentSlots` without the AJAX token | JSON `invalidSession` body, which the page answers by reloading |
+| POST without a CSRF token | `403` |
+| Replaying Place order | no second order - the model is gone and the flow restarts |
+| Another customer's order id in the URL | "That order could not be found." |
+| `/health`, Spring MVC `/ams/error` | `200` |
+
+The table below records the verification of the full application, before the reduction, against the
+Oracle container. Rows about screens that no longer exist are historical.
 
 Confirmed against a running stack, not just by test:
 

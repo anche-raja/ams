@@ -5,9 +5,8 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.example.am.internal.utils.InternalConstants;
-import org.example.am.internal.web.model.OrderModel;
+import org.example.am.internal.web.model.InstallOrderModel;
 import org.example.am.shared.domain.Address;
-import org.example.am.shared.domain.AssetType;
 import org.example.am.shared.domain.CountryType;
 import org.example.am.shared.domain.PropertyType;
 import org.example.am.shared.domain.StateType;
@@ -24,14 +23,14 @@ import com.opensymphony.xwork2.interceptor.AbstractInterceptor;
 import com.opensymphony.xwork2.interceptor.PreResultListener;
 
 /**
- * Validates the shipping address on the way into the order review screen.
+ * Validates the site address as the install order's first step is saved.
  *
- * <p>Only fires for domestic addresses on asset types that are physically shipped: the validation
- * service only knows domestic postal data, and asking it about anything else wastes a call and
- * produces a confusing "could not verify" for the user.</p>
+ * <p>Only fires for complete domestic addresses: the validation service only knows domestic postal
+ * data, and asking it about anything else wastes a call and produces a confusing "could not
+ * verify" for the user.</p>
  *
- * <p>The three result names let the address action distinguish the outcomes: the address was good,
- * the service has a correction to offer, or the check could not be made. A failed check is
+ * <p>The three result names let the site step distinguish the outcomes: the address was good, the
+ * service has a correction to offer, or the check could not be made. A failed check is
  * {@code av.error} and the flow continues - a validation outage must not stop an order.</p>
  *
  * <p><strong>The work happens in a {@link PreResultListener}, not after
@@ -77,7 +76,7 @@ public class AddressValidationInterceptor extends AbstractInterceptor {
         if (!Action.SUCCESS.equals(resultCode)) {
             return null;
         }
-        final OrderModel model = getModel(invocation);
+        final InstallOrderModel model = getModel(invocation);
         if (model == null || !isEligible(model)) {
             return null;
         }
@@ -87,67 +86,42 @@ public class AddressValidationInterceptor extends AbstractInterceptor {
         }
 
         final AddressValidationResponse response =
-                restService.postAddressValidation(model.getShippingAddress(),
+                restService.postAddressValidation(model.getSiteAddress(),
                         UUID.randomUUID().toString());
 
         if (!response.isSuccessful()) {
             LOGGER.info("Address validation was unavailable ({}); continuing with the keyed address",
                     response.getError());
+            model.setAddressCheckUnavailable(true);
             return InternalConstants.RESULT_AV_ERROR;
         }
         if (response.hasSuggestion()) {
-            model.setSuggestedAddress(toAddress(response.getBestMatch(), model.getShippingAddress()));
+            model.setSuggestedAddress(toAddress(response.getBestMatch(), model.getSiteAddress()));
             return InternalConstants.RESULT_AV_SUGGESTION;
         }
 
-        model.getShippingAddress().setValidated(true);
+        model.getSiteAddress().setValidated(true);
         return InternalConstants.RESULT_AV_SUCCESS;
     }
 
-    /**
-     * Validation is worth doing only for a complete domestic address on hardware that is actually
-     * shipped somewhere.
-     */
-    private static boolean isEligible(final OrderModel model) {
-        final Address address = model.getShippingAddress();
+    /** Validation is worth doing only for a complete domestic address not already checked. */
+    private static boolean isEligible(final InstallOrderModel model) {
+        final Address address = model.getSiteAddress();
         if (address == null || !address.isComplete() || !address.isDomestic()) {
             return false;
         }
-        if (address.isValidated() || model.isAddressSuggestionAccepted()) {
-            // Already checked, or the user has explicitly taken the suggestion; do not ask again.
-            return false;
-        }
-        if (model.getSelectedAsset() == null) {
-            // A new-hardware order has no asset yet - it is created when the device is despatched -
-            // and shipping a box somewhere is exactly the case this check exists for. Requiring a
-            // selected asset here is what previously made validation unreachable for the orders
-            // that most needed it.
-            return true;
-        }
-        return isShippedAssetType(model.getSelectedAsset().getAssetType());
-    }
-
-    private static boolean isShippedAssetType(final AssetType assetType) {
-        if (assetType == null) {
-            return false;
-        }
-        return AssetType.ROUTER.equals(assetType)
-                || AssetType.ROUTER_WIFI.equals(assetType)
-                || AssetType.ROUTER_LTE.equals(assetType)
-                || AssetType.SWITCH.equals(assetType)
-                || AssetType.SWITCH_POE.equals(assetType)
-                || AssetType.FIREWALL.equals(assetType)
-                || AssetType.ACCESS_POINT.equals(assetType);
+        // Already checked, or the user has explicitly taken the suggestion; do not ask again.
+        return !address.isValidated() && !model.isAddressSuggestionAccepted();
     }
 
     @SuppressWarnings("unchecked")
-    private static OrderModel getModel(final ActionInvocation invocation) {
+    private static InstallOrderModel getModel(final ActionInvocation invocation) {
         final Object action = invocation.getAction();
         if (!(action instanceof ModelDriven)) {
             return null;
         }
         final Object model = ((ModelDriven<Object>) action).getModel();
-        return model instanceof OrderModel ? (OrderModel) model : null;
+        return model instanceof InstallOrderModel ? (InstallOrderModel) model : null;
     }
 
     /**

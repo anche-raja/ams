@@ -5,42 +5,36 @@ import java.util.List;
 
 import org.example.am.shared.domain.Order;
 
-/** Order reads, submission and cancellation. */
+/** Install orders: placing one, and reading them back. */
 public interface OrderService {
 
-    Order getOrder(long customerId, long orderId);
-
-    List<Order> getOpenOrders(long customerId);
+    /** @return every order for the customer, newest first */
+    List<Order> getOrdersForCustomer(long customerId);
 
     /**
-     * Persists a new order and queues its confirmation email inside the same transaction.
+     * Places a new-install order in one transaction: the site address and contact, the order row,
+     * the device configuration, the installation visit and its calendar reservation, the audit
+     * event and the queued confirmation email.
+     *
+     * <p>The appointment is taken through the scheduling port at the moment the order is placed.
+     * If it filled up in the meantime the order still stands, unscheduled, and the installation's
+     * timeslot is cleared on the order passed in - which is how the caller finds out.</p>
      *
      * @return the generated order id
      */
-    long submitOrder(Order order, String userId);
+    long placeInstallOrder(Order order, String userId);
 
     /**
-     * @return {@code true} when the order was cancelled; {@code false} when it had already closed
-     */
-    boolean cancelOrder(long customerId, long orderId, String reason, String userId);
-
-    /**
-     * @return {@code true} when cancelling this order now would incur the cancellation charge
-     */
-    boolean isCancellationPenaltyIncurred(long customerId, long orderId, Date asOf);
-
-    /** @return the earliest installation date this order may be scheduled for */
-    Date getEarliestInstallationDate(Order order);
-
-    /**
-     * Reads an order together with everything captured when it was placed: the three contacts, the
-     * shipping address, the maintenance window, the external configuration, the subscriber PCs and
-     * the despatch window.
+     * Reads an order together with what was captured when it was placed: the site address and
+     * contact, the configuration and the installation with its timeslot.
      *
-     * <p>Separate from {@link #getOrder(long, long)} because it is eight queries rather than one,
-     * and the list screens want the cheap version.</p>
-     *
-     * @return the fully populated order, or {@code null} when there is no such order
+     * @return the populated order, or {@code null} when there is no such order for this customer
      */
     Order getOrderDetail(long customerId, long orderId);
+
+    /**
+     * @return the earliest day an installation may be booked for this order: its lead time in
+     *         business days, counted from submission (or from now, before it is submitted)
+     */
+    Date getEarliestInstallationDate(Order order);
 }

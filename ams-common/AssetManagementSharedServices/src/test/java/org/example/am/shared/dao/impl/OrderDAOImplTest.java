@@ -81,37 +81,4 @@ public class OrderDAOImplTest extends AbstractBaseTest {
         assertEquals(OrderType.NEW_INSTALL, reloaded.getOrderType());
         assertEquals(ShippingCarrier.UPS, reloaded.getShippingCarrier());
     }
-
-    /**
-     * The cancel statement carries its own guard, so a double submit of the cancel form cannot
-     * overwrite the reason recorded the first time.
-     */
-    @Test
-    public void cancelIsIdempotentAndWillNotReopenAClosedOrder() {
-        assertEquals(1, orderDAO.cancelOrder(6002L, "Customer changed their mind", true, new Date(),
-                TEST_USER));
-
-        final Order cancelled = orderDAO.getOrder(CUSTOMER_ID, 6002L);
-        assertEquals(OrderStatusType.CANCELLED, cancelled.getOrderStatusType());
-        assertEquals("Customer changed their mind", cancelled.getCancellationReason());
-        assertTrue(cancelled.isCancelledWithPenalty());
-
-        assertEquals(0, orderDAO.cancelOrder(6002L, "Second attempt", false, new Date(), TEST_USER));
-        assertEquals("Customer changed their mind",
-                orderDAO.getOrder(CUSTOMER_ID, 6002L).getCancellationReason());
-    }
-
-    @Test
-    public void cancelDoesNothingToAnAlreadyCompletedOrder() {
-        assertEquals(0, orderDAO.cancelOrder(6001L, "Too late", false, new Date(), TEST_USER));
-    }
-
-    @Test
-    public void trackingNumberUpdateAlsoMovesTheOrderToShipped() {
-        assertEquals(1, orderDAO.updateTrackingNumber(6002L, "1Z-BBB-222", TEST_USER));
-        final Order order = orderDAO.getOrder(CUSTOMER_ID, 6002L);
-        assertEquals("1Z-BBB-222", order.getTrackingNumber());
-        assertEquals(OrderStatusType.SHIPPED, order.getOrderStatusType());
-        assertNotNull(order.getShippedDate());
-    }
 }

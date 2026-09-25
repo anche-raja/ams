@@ -167,16 +167,17 @@ file count suggests.
 
 ### Patterns present for the migration to find
 
-Counted across `ams-common` and `ams-internal`, excluding `target/`:
+Counted across `ams-common` and `ams-internal`, excluding `target/`, after the reduction to the
+single install order flow (25 September 2026):
 
-| Pattern | Files |
+| Pattern | Count |
 |---|---|
-| `com.opensymphony.*` imports | 53 |
-| Field `@Autowired` | 91 |
+| `com.opensymphony.*` imports | 14 files |
+| Field `@Autowired` | 43 fields |
 | `@StrutsParameter` annotations | **0** — every bound setter is unannotated |
-| `ModelDriven` actions | 3 |
-| `Calendar` / `new Date()` | 17 |
-| `SimpleDateFormat` | 4 |
+| `ModelDriven` actions with their own model | 2 — `InstallOrderBaseAction` (shared by the three install steps) and `JsonErrorAction` |
+| `Calendar` / `new Date()` | 7 files |
+| `SimpleDateFormat` | 1 file |
 
 Also throughout: hand-written SQL as concatenated `String` constants, XML Struts configuration,
 anonymous `RowMapper` implementations, and `javax.annotation` rather than `jakarta.annotation`.

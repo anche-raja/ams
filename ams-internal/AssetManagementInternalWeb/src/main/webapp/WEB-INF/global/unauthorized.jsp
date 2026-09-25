@@ -12,7 +12,7 @@
 
   <p>You do not have permission to do that.</p>
   <p>If you believe you should have, ask your administrator which group grants it.</p>
-  <p><a href="${pageContext.request.contextPath}/assetManagement/InitDashboard.action">Return to the dashboard</a></p>
+  <p><a href="${pageContext.request.contextPath}/Home.action">Return to the home page</a></p>
 </div>
 
 <jsp:include page="/WEB-INF/common/footer.jsp"/>

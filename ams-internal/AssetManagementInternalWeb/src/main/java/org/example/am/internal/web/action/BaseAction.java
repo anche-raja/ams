@@ -16,6 +16,7 @@ import org.apache.struts2.interceptor.ServletResponseAware;
 import org.example.am.internal.security.AmsUser;
 import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.internal.utils.InternalConstants;
+import org.example.am.internal.web.model.JsonErrorModel;
 import org.example.am.shared.domain.Customer;
 import org.example.am.shared.domain.PropertyType;
 import org.example.am.shared.service.ConfigService;
@@ -32,11 +33,6 @@ import com.opensymphony.xwork2.ModelDriven;
  * <p>Four things live here because they are needed almost everywhere and are easy to get subtly
  * wrong in isolation: the role check, access to the authenticated user and the customer being
  * worked on, the request-scoped clock, and the non-production banner.</p>
- *
- * <p>The clock deserves a note. Several rules - the cancellation penalty window above all - depend
- * on "now", and in a non-production environment testers need to be able to move it. Every action
- * therefore reads the time through {@link #getCurrentTime()} rather than calling
- * {@code new Date()}, and the override is only ever honoured when the environment allows it.</p>
  */
 public abstract class BaseAction extends ActionSupport
         implements ServletRequestAware, ServletResponseAware, ModelDriven<Object> {
@@ -160,8 +156,8 @@ public abstract class BaseAction extends ActionSupport
      * Switches the customer the session is acting for, discarding any work in progress that
      * belonged to the previous one.
      *
-     * <p>The discard is not housekeeping, it is correctness. An in-progress order or change request
-     * carries its own {@code customerId}, copied in when the model was first created and never
+     * <p>The discard is not housekeeping, it is correctness. An in-progress order carries its own
+     * {@code customerId}, copied in when the model was first created and never
      * updated afterwards. Leaving one in place across a customer switch means every screen shows
      * the newly selected customer while the model still points at the old one - so the work is
      * either refused for reasons that make no sense against the customer on screen, or, when both
@@ -178,7 +174,6 @@ public abstract class BaseAction extends ActionSupport
 
         if (previousId != null && !previousId.equals(newId)) {
             session.removeAttribute(InternalConstants.SESSION_ORDER_MODEL);
-            session.removeAttribute(InternalConstants.SESSION_NCR_MODEL);
         }
         session.setAttribute(InternalConstants.SESSION_CUSTOMER, customer);
     }
@@ -217,6 +212,15 @@ public abstract class BaseAction extends ActionSupport
         return expected.equals(servletRequest.getParameter(InternalConstants.PARAM_AJAX_TOKEN));
     }
 
+    /**
+     * The body of the global {@code invalid.json.token} result, which names this property as its
+     * root. It says the session is gone, so {@code js/common.js} reloads the page rather than
+     * trying to render an error inside the widget that made the call.
+     */
+    public JsonErrorModel getJsonError() {
+        return JsonErrorModel.invalidSession();
+    }
+
     // ------------------------------------------------------------------
     // The request-scoped clock
     // ------------------------------------------------------------------
@@ -224,52 +228,11 @@ public abstract class BaseAction extends ActionSupport
     /**
      * The time every rule in this request should evaluate against.
      *
-     * <p>Reading the clock once per request rather than per rule means a request that straddles
-     * midnight, or a cancellation evaluated a few milliseconds either side of the penalty cutoff,
-     * cannot give two different answers within the same page.</p>
-     *
-     * @return the overridden time when one is set and the environment permits it, otherwise now
+     * <p>Every action reads the clock through here rather than calling {@code new Date()}, so that
+     * "now" is one seam to move in a test rather than a call scattered through each action.</p>
      */
     protected Date getCurrentTime() {
-        final Date override = getCurrentTimeOverride();
-        return override == null ? new Date() : override;
-    }
-
-    /**
-     * @return the session's time override, or {@code null}. Returns {@code null} unconditionally in
-     *         an environment where impersonation is switched off, so that a value left in a session
-     *         cannot outlive the switch being turned off.
-     */
-    protected Date getCurrentTimeOverride() {
-        if (!isTimeOverrideAllowed()) {
-            return null;
-        }
-        final HttpSession session = getSession();
-        if (session == null) {
-            return null;
-        }
-        return (Date) session.getAttribute(InternalConstants.SESSION_CURRENT_TIME_OVERRIDE);
-    }
-
-    protected void setCurrentTimeOverride(final Date override) {
-        if (!isTimeOverrideAllowed()) {
-            throw new IllegalStateException(
-                    "The current time cannot be overridden in this environment");
-        }
-        getOrCreateSession()
-                .setAttribute(InternalConstants.SESSION_CURRENT_TIME_OVERRIDE, override);
-    }
-
-    /**
-     * @return {@code true} only when the environment is non production <em>and</em> the switch is
-     *         on. Both conditions are required: neither alone is enough to allow a user to move the
-     *         application's clock.
-     */
-    protected boolean isTimeOverrideAllowed() {
-        if (configService == null || !configService.isNonProductionEnvironment()) {
-            return false;
-        }
-        return configService.getBoolean(PropertyType.ENABLE_USER_IMPERSONATION, false);
+        return new Date();
     }
 
     // ------------------------------------------------------------------

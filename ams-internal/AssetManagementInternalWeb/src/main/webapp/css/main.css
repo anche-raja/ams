@@ -557,3 +557,15 @@ a:hover { color: var(--ams-accent-dark); }
 
 /* A field being mirrored from another contact: readable, clearly not independently editable. */
 input[readonly] { background: #f2f4f4; color: #40504f; cursor: not-allowed; }
+
+/* The installation appointment picker, filled in by js/common.js. */
+.ams-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.ams-slot {
+  cursor: pointer;
+}

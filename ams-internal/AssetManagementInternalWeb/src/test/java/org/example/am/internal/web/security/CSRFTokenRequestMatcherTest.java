@@ -27,18 +27,18 @@ public class CSRFTokenRequestMatcherTest {
 
     @Test
     public void safeMethodsNeedNoToken() {
-        assertFalse(matcher.matches(request("GET", "/order/InitOrder.action")));
-        assertFalse(matcher.matches(request("HEAD", "/order/InitOrder.action")));
-        assertFalse(matcher.matches(request("OPTIONS", "/order/InitOrder.action")));
-        assertFalse(matcher.matches(request("TRACE", "/order/InitOrder.action")));
+        assertFalse(matcher.matches(request("GET", "/install/Site.action")));
+        assertFalse(matcher.matches(request("HEAD", "/install/Site.action")));
+        assertFalse(matcher.matches(request("OPTIONS", "/install/Site.action")));
+        assertFalse(matcher.matches(request("TRACE", "/install/Site.action")));
     }
 
     @Test
     public void everyStateChangingMethodNeedsOne() {
-        assertTrue(matcher.matches(request("POST", "/order/SubmitOrder.action")));
-        assertTrue(matcher.matches(request("PUT", "/order/SubmitOrder.action")));
-        assertTrue(matcher.matches(request("PATCH", "/order/SubmitOrder.action")));
-        assertTrue(matcher.matches(request("DELETE", "/order/SubmitOrder.action")));
+        assertTrue(matcher.matches(request("POST", "/install/PlaceOrder.action")));
+        assertTrue(matcher.matches(request("PUT", "/install/PlaceOrder.action")));
+        assertTrue(matcher.matches(request("PATCH", "/install/PlaceOrder.action")));
+        assertTrue(matcher.matches(request("DELETE", "/install/PlaceOrder.action")));
     }
 
     /** The container's monitor has no session to carry a token in. */
@@ -62,7 +62,7 @@ public class CSRFTokenRequestMatcherTest {
     public void theExemptionCannotBeExtended() {
         assertTrue(matcher.matches(request("POST", "/healthy")));
         assertTrue(matcher.matches(request("POST", "/health.action.evil")));
-        assertTrue(matcher.matches(request("POST", "/health/order/SubmitOrder.action")));
+        assertTrue(matcher.matches(request("POST", "/health/install/PlaceOrder.action")));
     }
 
     /** Matching is on the path within the application, so the context root cannot change it. */

@@ -1,7 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-<%@ taglib prefix="s" uri="/struts-tags" %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,27 +32,32 @@
 </c:if>
 
 <header class="ams-header">
-  <a class="ams-brand" href="${pageContext.request.contextPath}/assetManagement/InitDashboard.action">
+  <a class="ams-brand" href="${pageContext.request.contextPath}/Home.action">
     Internal Asset Management
   </a>
   <div class="ams-header-right">
     <%--
-      The customer being acted for, on every page. Most screens change that customer's data, and
-      acting on the wrong one is the easiest damaging mistake available here - so it is shown
+      The customer being acted for, on every page. An order is placed for that customer, and
+      ordering for the wrong one is the easiest damaging mistake available here - so it is shown
       permanently rather than only on the screen where it was chosen.
+
+      Plain JSTL against the session rather than Struts tags: the Spring MVC error pages include
+      this header too, and a Struts tag outside a Struts request has no value stack to read.
     --%>
-    <s:if test="currentCustomer != null">
-      <span class="ams-current-customer">
-        <s:property value="currentCustomer.displayName" escapeHtml="true"/>
-        &middot; <a href="${pageContext.request.contextPath}/customer/CustomerPicker.action">change</a>
-      </span>
-    </s:if>
-    <s:else>
-      <span class="ams-current-customer ams-current-customer--none">
-        No customer selected &middot;
-        <a href="${pageContext.request.contextPath}/customer/CustomerPicker.action">choose</a>
-      </span>
-    </s:else>
+    <c:choose>
+      <c:when test="${not empty sessionScope.currentCustomer}">
+        <span class="ams-current-customer">
+          <c:out value="${sessionScope.currentCustomer.displayName}"/>
+          &middot; <a href="${pageContext.request.contextPath}/Home.action">change</a>
+        </span>
+      </c:when>
+      <c:otherwise>
+        <span class="ams-current-customer ams-current-customer--none">
+          No customer selected &middot;
+          <a href="${pageContext.request.contextPath}/Home.action">choose</a>
+        </span>
+      </c:otherwise>
+    </c:choose>
     <span class="ams-user">
       <c:if test="${not empty pageContext.request.remoteUser}">
         <c:out value="${pageContext.request.remoteUser}"/>

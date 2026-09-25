@@ -229,9 +229,9 @@ public class StrutsConfigurationTest {
     /** The URLs the deployment checklist names have to be there. */
     @Test
     public void theDocumentedEntryPointsAreMapped() {
-        assertTrue(ACTION_PATHS.contains("/order/InitOrder"));
-        assertTrue(ACTION_PATHS.contains("/assetManagement/Search"));
-        assertTrue(ACTION_PATHS.contains("/customer/CustomerAdmin"));
+        assertTrue(ACTION_PATHS.contains("//Home"));
+        assertTrue(ACTION_PATHS.contains("/install/Site"));
+        assertTrue(ACTION_PATHS.contains("/install/PlaceOrder"));
         assertTrue(ACTION_PATHS.contains("//health"));
     }
 

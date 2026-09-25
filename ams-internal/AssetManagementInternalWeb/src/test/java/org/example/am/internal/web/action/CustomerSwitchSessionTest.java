@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
 import org.example.am.internal.utils.InternalConstants;
+import org.example.am.internal.web.model.InstallOrderModel;
 import org.example.am.shared.domain.Customer;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,21 +62,14 @@ public class CustomerSwitchSessionTest {
 
     private void startAnOrderFor(final long customerId) {
         action.setCurrentCustomer(customer(customerId));
-        final OrderModelHolder held = new OrderModelHolder(customerId);
-        request.getSession(true).setAttribute(InternalConstants.SESSION_ORDER_MODEL, held);
+        request.getSession(true).setAttribute(InternalConstants.SESSION_ORDER_MODEL,
+                orderFor(customerId));
     }
 
-    /** Stands in for the real OrderModel; only the customer id it pins matters here. */
-    private static final class OrderModelHolder {
-        private final long customerId;
-
-        OrderModelHolder(final long customerId) {
-            this.customerId = customerId;
-        }
-
-        long getCustomerId() {
-            return customerId;
-        }
+    private static InstallOrderModel orderFor(final long customerId) {
+        final InstallOrderModel model = new InstallOrderModel();
+        model.setCustomerId(Long.valueOf(customerId));
+        return model;
     }
 
     @Test
@@ -87,16 +81,6 @@ public class CustomerSwitchSessionTest {
 
         assertNull("the order started for 1002 must not survive the switch to 1011", orderModel());
         assertEquals(Long.valueOf(1011L), action.getCurrentCustomerId());
-    }
-
-    @Test
-    public void switchingCustomerDiscardsTheChangeRequestInProgress() {
-        action.setCurrentCustomer(customer(1002L));
-        request.getSession(true).setAttribute(InternalConstants.SESSION_NCR_MODEL, "in progress");
-
-        action.setCurrentCustomer(customer(1011L));
-
-        assertNull(request.getSession(true).getAttribute(InternalConstants.SESSION_NCR_MODEL));
     }
 
     @Test
@@ -126,7 +110,7 @@ public class CustomerSwitchSessionTest {
         // No customer selected yet, so there is no previous owner to protect against: whatever is
         // in the session was created under this same selection and must survive.
         request.getSession(true).setAttribute(InternalConstants.SESSION_ORDER_MODEL,
-                new OrderModelHolder(0L));
+                orderFor(0L));
 
         action.setCurrentCustomer(customer(1011L));
 

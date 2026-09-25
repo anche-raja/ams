@@ -1,10 +1,8 @@
 package org.example.am.shared.dao;
 
-import java.util.Date;
 import java.util.List;
 
 import org.example.am.shared.domain.Order;
-import org.example.am.shared.domain.OrderStatusType;
 
 /** Reads and writes {@code AMS_ORDERS}. */
 public interface OrderDAO {
@@ -30,19 +28,4 @@ public interface OrderDAO {
      */
     int linkOrderArtifacts(long orderId, Long maintenanceWindowId, Long configurationId,
             Long shippingWindowId, String userId);
-
-    int updateOrderStatus(long orderId, OrderStatusType status, String userId);
-
-    int cancelOrder(long orderId, String reason, boolean withPenalty, Date cancelledDate, String userId);
-
-    int updateTrackingNumber(long orderId, String trackingNumber, String userId);
-
-    /**
-     * Records the despatch in one statement: the asset that was built, the carrier's tracking
-     * number, the despatch timestamp and the status move to SHIPPED.
-     *
-     * <p>One statement rather than four so the order can never be seen half despatched - with an
-     * asset attached but still reading SUBMITTED, or shipped with no asset against it.</p>
-     */
-    int markDespatched(long orderId, long assetId, String trackingNumber, String userId);
 }

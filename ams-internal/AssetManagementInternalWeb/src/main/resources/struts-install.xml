@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 6.0//EN"
+    "https://struts.apache.org/dtds/struts-6.0.dtd">
+<struts>
+
+  <!--
+    The home page, which is also where an install order starts: choosing a customer and starting
+    their order is one POST.
+  -->
+  <package name="home" namespace="/" extends="AssetManagementInternalWeb">
+
+    <action name="Home" class="HomeAction" method="home">
+      <result>/WEB-INF/home.jsp</result>
+    </action>
+
+    <action name="StartInstallOrder" class="HomeAction" method="startInstallOrder">
+      <result type="redirectAction">
+        <param name="namespace">/install</param>
+        <param name="actionName">Site</param>
+      </result>
+      <result name="input">/WEB-INF/home.jsp</result>
+    </action>
+  </package>
+
+  <!--
+    The install order, in three steps:
+
+      1  Site          site contact and installation address, validated against the API
+      2  Device        device nickname, WAN and LAN addressing, run through the validators
+      3  Appointment   the installation slot (loaded as JSON), then Place order
+
+    There is deliberately no review step. Each step validates its own input and PlaceOrder
+    re-validates the lot, so a review page would only repeat what the user has just been through.
+    The confirmation page is the receipt.
+
+    The partly completed order lives in the session between steps, so nothing is written until it
+    is placed and an abandoned order leaves no rows behind.
+  -->
+  <package name="install" namespace="/install" extends="AssetManagementInternalWeb">
+
+    <!-- Shared by every step: where a user who skipped ahead, or has no order, is sent. -->
+    <global-results>
+      <result name="noOrder" type="redirectAction">
+        <param name="namespace">/</param>
+        <param name="actionName">Home</param>
+      </result>
+      <result name="backToSite" type="redirectAction">
+        <param name="actionName">Site</param>
+      </result>
+      <result name="backToDevice" type="redirectAction">
+        <param name="actionName">Device</param>
+      </result>
+    </global-results>
+
+    <!-- Step 1: the site. -->
+    <action name="Site" class="InstallSiteAction" method="initSite">
+      <result>/WEB-INF/install/installSite.jsp</result>
+    </action>
+
+    <!--
+      Wrapped by the address validation interceptor. The three av.* results are what it returns:
+      the address was accepted as keyed, the service has a correction to confirm, or the check
+      could not be made. Only the first moves the user on; the other two stay on the site page and
+      ask a question first. A validation outage is av.error, and "keep this address" continues
+      from there - an address service being down must not stop an order being placed.
+    -->
+    <action name="SaveSite" class="InstallSiteAction" method="saveSite">
+      <interceptor-ref name="addressValidationStack"/>
+      <result type="redirectAction">
+        <param name="actionName">Device</param>
+      </result>
+      <result name="av.success" type="redirectAction">
+        <param name="actionName">Device</param>
+      </result>
+      <result name="av.suggestion">/WEB-INF/install/installSite.jsp</result>
+      <result name="av.error">/WEB-INF/install/installSite.jsp</result>
+      <result name="input">/WEB-INF/install/installSite.jsp</result>
+    </action>
+
+    <action name="AcceptSuggestion" class="InstallSiteAction" method="acceptSuggestion">
+      <result type="redirectAction">
+        <param name="actionName">Device</param>
+      </result>
+      <result name="input">/WEB-INF/install/installSite.jsp</result>
+    </action>
+
+    <action name="KeepAddress" class="InstallSiteAction" method="keepAddress">
+      <result type="redirectAction">
+        <param name="actionName">Device</param>
+      </result>
+      <result name="input">/WEB-INF/install/installSite.jsp</result>
+    </action>
+
+    <!-- Step 2: the device and its addressing. -->
+    <action name="Device" class="InstallDeviceAction" method="initDevice">
+      <result>/WEB-INF/install/installDevice.jsp</result>
+    </action>
+
+    <action name="SaveDevice" class="InstallDeviceAction" method="saveDevice">
+      <result type="redirectAction">
+        <param name="actionName">Appointment</param>
+      </result>
+      <result name="input">/WEB-INF/install/installDevice.jsp</result>
+    </action>
+
+    <!-- Step 3: the appointment, and the button that places the order. -->
+    <action name="Appointment" class="InstallAppointmentAction" method="initAppointment">
+      <result>/WEB-INF/install/installAppointment.jsp</result>
+    </action>
+
+    <!-- The slot picker's data. JSON, so it runs the token-checking stack. -->
+    <action name="AppointmentSlots" class="InstallAppointmentAction" method="listSlots">
+      <interceptor-ref name="assetManagementJsonStack"/>
+      <result type="json">
+        <param name="root">availability</param>
+      </result>
+      <result name="error" type="json">
+        <param name="root">availability</param>
+        <param name="statusCode">409</param>
+      </result>
+    </action>
+
+    <!--
+      A POST, and the redirect after it carries only the id. Placing an order must never be a GET:
+      it would bypass the CSRF check, which guards only non-safe methods, and a refresh of the
+      resulting URL would place a second order. The confirmation it redirects to is a plain read.
+    -->
+    <action name="PlaceOrder" class="InstallAppointmentAction" method="placeOrder">
+      <result type="redirectAction">
+        <param name="actionName">Confirmation</param>
+        <param name="orderId">${placedOrderId}</param>
+        <param name="appointmentLost">${appointmentLost}</param>
+      </result>
+      <result name="input">/WEB-INF/install/installAppointment.jsp</result>
+    </action>
+
+    <action name="Abandon" class="InstallAppointmentAction" method="abandon">
+      <result type="redirectAction">
+        <param name="namespace">/</param>
+        <param name="actionName">Home</param>
+      </result>
+    </action>
+
+    <action name="Confirmation" class="InstallConfirmationAction" method="confirmation">
+      <result>/WEB-INF/install/installConfirmation.jsp</result>
+      <result name="error">/WEB-INF/global/customError.jsp</result>
+    </action>
+  </package>
+
+</struts>

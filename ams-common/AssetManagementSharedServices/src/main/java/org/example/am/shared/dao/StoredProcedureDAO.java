@@ -15,13 +15,5 @@ public interface StoredProcedureDAO {
     String reserveTimeslot(long timeslotId, long entityId, String entityType, Date scheduledDate,
             String userId);
 
-    /**
-     * Routes to the simple or the complex cancellation procedure.
-     *
-     * @param complex {@code true} for a site type change, which also holds a circuit reservation
-     */
-    String cancelNetworkChangeRequestDate(long networkChangeRequestId, long assetId, String reason,
-            boolean complex, String userId);
-
     Long addEntityEmail(String entityTypeCode, long entityId, String templateCode, String userId);
 }

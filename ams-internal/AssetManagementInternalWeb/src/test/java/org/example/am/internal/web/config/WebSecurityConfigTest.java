@@ -135,10 +135,9 @@ public class WebSecurityConfigTest {
     @Test
     public void anUnauthenticatedRequestToAnythingElseIsForbidden() throws Exception {
         for (final String path : new String[] {
-                "/assetManagement/Search.action",
-                "/order/InitOrder.action",
-                "/customer/CustomerAdmin.action",
-                "/admin/InitAdminUtilities.action",
+                "/Home.action",
+                "/install/Site.action",
+                "/install/AppointmentSlots.action",
                 "/" }) {
             final MockHttpServletResponse response = mockMvc.perform(
                     org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(path))
@@ -155,7 +154,7 @@ public class WebSecurityConfigTest {
     public void aRequestWithTheProxyHeadersIsAuthenticated() throws Exception {
         final MockHttpServletResponse response = mockMvc.perform(
                 org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                        .get("/assetManagement/Search.action")
+                        .get("/Home.action")
                         .header("iv-user", "opsuser")
                         .header("iv-groups", "AMS_INTERNAL_OPERATIONS"))
                 .andReturn().getResponse();
@@ -168,7 +167,7 @@ public class WebSecurityConfigTest {
     public void theUnauthenticatedLiteralIsStillRefused() throws Exception {
         final MockHttpServletResponse response = mockMvc.perform(
                 org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                        .get("/assetManagement/Search.action")
+                        .get("/Home.action")
                         .header("iv-user", "Unauthenticated"))
                 .andReturn().getResponse();
         assertEquals(HttpStatus.FORBIDDEN.value(), response.getStatus());
@@ -179,7 +178,7 @@ public class WebSecurityConfigTest {
     public void securityHeadersAreOnEveryResponse() throws Exception {
         final MockHttpServletResponse response = mockMvc.perform(
                 org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                        .get("/assetManagement/Search.action"))
+                        .get("/Home.action"))
                 .andReturn().getResponse();
 
         assertEquals("SAMEORIGIN", response.getHeader("X-Frame-Options"));
@@ -202,14 +201,14 @@ public class WebSecurityConfigTest {
     public void hstsIsWrittenOnSecureRequestsOnly() throws Exception {
         final MockHttpServletResponse plain = mockMvc.perform(
                 org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                        .get("/assetManagement/Search.action"))
+                        .get("/Home.action"))
                 .andReturn().getResponse();
         assertTrue("HSTS should not be sent over plain HTTP",
                 plain.getHeader("Strict-Transport-Security") == null);
 
         final MockHttpServletResponse secure = mockMvc.perform(
                 org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                        .get("/assetManagement/Search.action").secure(true))
+                        .get("/Home.action").secure(true))
                 .andReturn().getResponse();
         assertNotNull(secure.getHeader("Strict-Transport-Security"));
         assertTrue(secure.getHeader("Strict-Transport-Security").contains("includeSubDomains"));
@@ -220,7 +219,7 @@ public class WebSecurityConfigTest {
     public void aPostWithoutACsrfTokenIsRefused() throws Exception {
         final MockHttpServletResponse response = mockMvc.perform(
                 org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                        .post("/order/SubmitOrder.action")
+                        .post("/install/PlaceOrder.action")
                         .header("iv-user", "opsuser")
                         .header("iv-groups", "AMS_INTERNAL_OPERATIONS"))
                 .andReturn().getResponse();

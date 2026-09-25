@@ -17,7 +17,7 @@
       if you contact support.
     </p>
   </s:if>
-  <p><a href="${pageContext.request.contextPath}/assetManagement/InitDashboard.action">Return to the dashboard</a></p>
+  <p><a href="${pageContext.request.contextPath}/Home.action">Return to the home page</a></p>
 </div>
 
 <jsp:include page="/WEB-INF/common/footer.jsp"/>

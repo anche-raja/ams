@@ -95,119 +95,55 @@
     }
 
     /**
-     * Loads a dashboard panel's content.
+     * Fills the installation appointment picker from its JSON endpoint.
+     *
+     * The slots are fetched when the page is shown rather than rendered into it, so the places
+     * left reflect the calendar now. They are rendered as radio buttons inside the Place order
+     * form, so the choice is posted with the rest of it; the server re-checks it against what is
+     * on offer at that moment, which is what actually decides.
      */
-    function loadPanel(panel) {
-        var url = panel.getAttribute("data-content-url");
+    function loadSlots(container) {
+        var url = container.getAttribute("data-slots-url");
         if (!url) {
             return;
         }
-        post(url, {}, function () {
-            panel.textContent = "";
+        post(url, {}, function (body) {
+            var slots = (body && body.slots) || [];
+            var i, slot, label, radio, text;
+
+            container.textContent = "";
+            if (slots.length === 0) {
+                container.textContent = "No appointments are free in the next few weeks. You can"
+                    + " still place the order; operations will book the visit by hand.";
+                return;
+            }
+            for (i = 0; i < slots.length; i++) {
+                slot = slots[i];
+                label = document.createElement("label");
+                label.className = "ams-slot";
+                radio = document.createElement("input");
+                radio.type = "radio";
+                radio.name = "installationTimeslotId";
+                radio.value = String(slot.timeslotId);
+                radio.checked = slot.selected === true;
+                // textContent, never innerHTML: the label comes from the database.
+                text = document.createTextNode(" " + slot.day + " - " + slot.label + " ("
+                    + slot.placesLeft + (slot.placesLeft === 1 ? " place" : " places") + " left)");
+                label.appendChild(radio);
+                label.appendChild(text);
+                container.appendChild(label);
+            }
         }, function (message) {
-            panel.textContent = message;
+            container.textContent = message;
         });
-    }
-
-    /** The six inputs that make up one contact, by the id prefix its fieldset uses. */
-    var CONTACT_FIELDS = ["first", "last", "email", "phone", "ext", "mobile"];
-
-    function contactInput(prefix, field) {
-        return document.getElementById(prefix + "-" + field);
-    }
-
-    /**
-     * Mirrors one contact onto another while a "same as" box is ticked.
-     *
-     * The server copies these on submit regardless - applyCopyBoxes in OrderContactAction is what
-     * actually decides what is stored. This exists because without it the box appears to do
-     * nothing: the operator ticks it, the fields below stay empty, and the only way to discover the
-     * copy happened is to submit and come back. Mirroring on screen makes the box mean what it
-     * says, and marking the target read only makes it obvious the values are not independently
-     * editable until the box is cleared.
-     */
-    function bindSameAs(boxId, sourcePrefix, targetPrefix) {
-        var box = document.getElementById(boxId);
-        if (!box) {
-            return null;
-        }
-
-        function apply() {
-            var i, source, target;
-            for (i = 0; i < CONTACT_FIELDS.length; i++) {
-                source = contactInput(sourcePrefix, CONTACT_FIELDS[i]);
-                target = contactInput(targetPrefix, CONTACT_FIELDS[i]);
-                if (!source || !target) {
-                    continue;
-                }
-                if (box.checked) {
-                    target.value = source.value;
-                    target.readOnly = true;
-                    target.setAttribute("aria-readonly", "true");
-                } else {
-                    // The values stay behind on unticking: the operator almost always wants to
-                    // amend the copy rather than retype it from nothing.
-                    target.readOnly = false;
-                    target.removeAttribute("aria-readonly");
-                }
-            }
-        }
-
-        box.addEventListener("change", function () {
-            apply();
-            // Installation may be copying from shipping, which has just changed underneath it.
-            document.dispatchEvent(new CustomEvent("ams:contacts-changed"));
-        });
-
-        var j;
-        for (j = 0; j < CONTACT_FIELDS.length; j++) {
-            (function (input) {
-                if (!input) {
-                    return;
-                }
-                input.addEventListener("input", function () {
-                    if (box.checked) {
-                        apply();
-                        document.dispatchEvent(new CustomEvent("ams:contacts-changed"));
-                    }
-                });
-            }(contactInput(sourcePrefix, CONTACT_FIELDS[j])));
-        }
-        return apply;
-    }
-
-    /**
-     * Wires both boxes on the ordering contact screen, and chains them: with both ticked, typing in
-     * the ordering contact has to reach the installation contact through the shipping one.
-     */
-    function bindContactCopying() {
-        var shipping = bindSameAs("ship-same", "oc", "sc");
-        var installation = bindSameAs("install-same", "sc", "ic");
-        if (!shipping && !installation) {
-            return;
-        }
-        document.addEventListener("ams:contacts-changed", function () {
-            if (installation) {
-                installation();
-            }
-        });
-        // Reflect the state the server rendered: coming back to this screen with the boxes already
-        // ticked has to show the fields locked, not editable-looking.
-        if (shipping) {
-            shipping();
-        }
-        if (installation) {
-            installation();
-        }
     }
 
     function onReady() {
-        var panels = document.querySelectorAll(".ams-panel-body[data-content-url]");
+        var pickers = document.querySelectorAll("[data-slots-url]");
         var i;
-        for (i = 0; i < panels.length; i++) {
-            loadPanel(panels[i]);
+        for (i = 0; i < pickers.length; i++) {
+            loadSlots(pickers[i]);
         }
-        bindContactCopying();
     }
 
     if (document.readyState === "loading") {

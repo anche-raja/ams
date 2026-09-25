@@ -13,7 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.example.am.internal.utils.InternalConstants;
-import org.example.am.internal.web.model.OrderModel;
+import org.example.am.internal.web.model.InstallOrderModel;
 import org.example.am.shared.domain.Address;
 import org.example.am.shared.domain.CountryType;
 import org.example.am.shared.domain.PropertyType;
@@ -53,9 +53,9 @@ public class AddressValidationInterceptorTest {
     /** Minimal model-driven action; the interceptor only needs {@code getModel}. */
     private static final class StubAction implements ModelDriven<Object> {
 
-        private final OrderModel model;
+        private final InstallOrderModel model;
 
-        private StubAction(final OrderModel model) {
+        private StubAction(final InstallOrderModel model) {
             this.model = model;
         }
 
@@ -75,7 +75,7 @@ public class AddressValidationInterceptorTest {
     private ConfigService configService;
 
     private AddressValidationInterceptor interceptor;
-    private OrderModel model;
+    private InstallOrderModel model;
 
     @Before
     public void setUp() throws Exception {
@@ -83,8 +83,8 @@ public class AddressValidationInterceptorTest {
         interceptor.setRestService(restService);
         interceptor.setConfigService(configService);
 
-        model = new OrderModel();
-        model.setShippingAddress(completeAddress());
+        model = new InstallOrderModel();
+        model.setSiteAddress(completeAddress());
 
         when(invocation.getAction()).thenReturn(new StubAction(model));
         when(invocation.invoke()).thenReturn(Action.SUCCESS);
@@ -176,10 +176,10 @@ public class AddressValidationInterceptorTest {
         runAndCaptureListener().beforeResult(invocation, Action.SUCCESS);
 
         verify(invocation).setResultCode(InternalConstants.RESULT_AV_SUCCESS);
-        assertTrue(model.getShippingAddress().isValidated());
+        assertTrue(model.getSiteAddress().isValidated());
     }
 
-    /** An outage must not stop an order; it sends the user to the "not verified" page. */
+    /** An outage must not stop an order; the site page offers to continue unverified. */
     @Test
     public void anOutageIsNotFatal() throws Exception {
         when(restService.postAddressValidation(any(Address.class), anyString()))
@@ -188,7 +188,9 @@ public class AddressValidationInterceptorTest {
         runAndCaptureListener().beforeResult(invocation, Action.SUCCESS);
 
         verify(invocation).setResultCode(InternalConstants.RESULT_AV_ERROR);
-        assertFalse(model.getShippingAddress().isValidated());
+        assertFalse(model.getSiteAddress().isValidated());
+        assertTrue("the site page needs to know to offer continuing unverified",
+                model.isAddressCheckUnavailable());
     }
 
     /**
@@ -205,7 +207,7 @@ public class AddressValidationInterceptorTest {
 
     @Test
     public void anIncompleteAddressIsNotSentToTheService() throws Exception {
-        model.getShippingAddress().setZipCode(null);
+        model.getSiteAddress().setZipCode(null);
 
         runAndCaptureListener().beforeResult(invocation, Action.SUCCESS);
 
@@ -216,7 +218,7 @@ public class AddressValidationInterceptorTest {
     /** A foreign address is outside what the service knows; asking wastes a call. */
     @Test
     public void anInternationalAddressIsNotSentToTheService() throws Exception {
-        model.getShippingAddress().setCountry(CountryType.lookup("CA"));
+        model.getSiteAddress().setCountry(CountryType.lookup("CA"));
 
         runAndCaptureListener().beforeResult(invocation, Action.SUCCESS);
 

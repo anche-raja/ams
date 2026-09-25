@@ -44,8 +44,6 @@
                    class="org.example.am.internal.web.interceptors.SecurityHeadersInterceptor"/>
       <interceptor name="specialCharacter"
                    class="org.example.am.internal.web.interceptors.ValidateSpecialCharacterInterceptor"/>
-      <interceptor name="ajaxToken"
-                   class="org.example.am.internal.web.interceptors.AjaxTokenInterceptor"/>
       <interceptor name="ajaxJsonToken"
                    class="org.example.am.internal.web.interceptors.AjaxJsonTokenInterceptor"/>
       <interceptor name="addressValidation"
@@ -116,11 +114,7 @@
         <interceptor-ref name="conversionError"/>
       </interceptor-stack>
 
-      <interceptor-stack name="AdminUtilJsonStack">
-        <interceptor-ref name="assetManagementJsonStack"/>
-      </interceptor-stack>
-
-      <!-- The address step, which calls the address validation service on the way out. -->
+      <!-- The site step, which calls the address validation service on the way out. -->
       <interceptor-stack name="addressValidationStack">
         <interceptor-ref name="modelDrivenStack"/>
         <interceptor-ref name="addressValidation"/>
@@ -150,19 +144,7 @@
   </package>
 
   <include file="struts-health.xml"/>
-  <include file="struts-assetManagement.xml"/>
-  <include file="struts-ajax.xml"/>
-  <include file="struts-customer.xml"/>
-  <include file="struts-order.xml"/>
-  <include file="struts-provisioning.xml"/>
-  <include file="struts-calendar.xml"/>
-  <include file="struts-user.xml"/>
-  <include file="struts-cancel.xml"/>
-  <include file="struts-services.xml"/>
-  <include file="struts-assets.xml"/>
-  <include file="struts-termsAndConditions.xml"/>
-  <include file="struts-networkChangeRequest.xml"/>
-  <include file="struts-admin.xml"/>
+  <include file="struts-install.xml"/>
   <include file="struts-error.xml"/>
 
 </struts>

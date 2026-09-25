@@ -9,9 +9,7 @@ public final class InternalConstants {
     /** Session attributes. */
     public static final String SESSION_AJAX_TOKEN = "ajaxToken";
     public static final String SESSION_CUSTOMER = "currentCustomer";
-    public static final String SESSION_CURRENT_TIME_OVERRIDE = "currentTimeOverride";
-    public static final String SESSION_ORDER_MODEL = "orderModel";
-    public static final String SESSION_NCR_MODEL = "networkChangeRequestModel";
+    public static final String SESSION_ORDER_MODEL = "installOrderModel";
 
     /** Request parameters. */
     public static final String PARAM_AJAX_TOKEN = "ajaxToken";

@@ -4,8 +4,6 @@ import java.util.Date;
 
 import org.example.am.shared.dao.StoredProcedureDAO;
 import org.example.am.shared.dao.scheduling.EntityEmailDAO;
-import org.example.am.shared.dao.scheduling.NcrSchedulingDAO;
-import org.example.am.shared.dao.scheduling.SchedulingResult;
 import org.example.am.shared.dao.scheduling.TimeslotSchedulingDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -29,9 +27,6 @@ public class StoredProcedureDAOImpl implements StoredProcedureDAO {
     private TimeslotSchedulingDAO timeslotSchedulingDAO;
 
     @Autowired
-    private NcrSchedulingDAO ncrSchedulingDAO;
-
-    @Autowired
     private EntityEmailDAO entityEmailDAO;
 
     @Override
@@ -40,20 +35,6 @@ public class StoredProcedureDAOImpl implements StoredProcedureDAO {
         return timeslotSchedulingDAO
                 .reserve(timeslotId, entityId, entityType, scheduledDate, userId)
                 .getStatus();
-    }
-
-    /**
-     * The {@code complex} flag chooses between releasing the date alone and also giving back every
-     * circuit window the request holds. It was never a procedure parameter - it selected which of
-     * two procedures to call, and it selects which of two methods to call now.
-     */
-    @Override
-    public String cancelNetworkChangeRequestDate(final long networkChangeRequestId,
-            final long assetId, final String reason, final boolean complex, final String userId) {
-        final SchedulingResult result = complex
-                ? ncrSchedulingDAO.cancelSiteTypeChange(networkChangeRequestId, reason, userId)
-                : ncrSchedulingDAO.cancelChangeDate(networkChangeRequestId, reason, userId);
-        return result.getStatus();
     }
 
     /**

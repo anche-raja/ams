@@ -2,7 +2,6 @@ package org.example.am.shared.dao.impl;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Date;
 import java.util.List;
 
 import org.example.am.shared.dao.BaseDAO;
@@ -84,42 +83,6 @@ public class OrderDAOImpl extends BaseDAO implements OrderDAO {
           + "       MODIFIED_DT = SYSTIMESTAMP, MODIFIED_BY = :userId "
           + " WHERE ORDER_ID = :orderId ";
 
-    private static final String UPDATE_ORDER_STATUS =
-            "UPDATE AMS_ORDERS "
-          + "   SET ORDER_STATUS_CD = :statusCode, MODIFIED_DT = SYSTIMESTAMP, MODIFIED_BY = :userId "
-          + " WHERE ORDER_ID = :orderId ";
-
-    /**
-     * Cancels only an order that is still open, so a double submit of the cancel form updates zero
-     * rows the second time rather than overwriting the original cancellation reason.
-     */
-    private static final String CANCEL_ORDER =
-            "UPDATE AMS_ORDERS "
-          + "   SET ORDER_STATUS_CD = 'CANCELLED',"
-          + "       CANCELLED_DT = :cancelledDate,"
-          + "       CANCELLATION_REASON = :reason,"
-          + "       CANCEL_PENALTY_FL = :penaltyFlag,"
-          + "       MODIFIED_DT = SYSTIMESTAMP,"
-          + "       MODIFIED_BY = :userId "
-          + " WHERE ORDER_ID = :orderId "
-          + "   AND ORDER_STATUS_CD NOT IN ('COMPLETED', 'CANCELLED') ";
-
-    private static final String UPDATE_TRACKING_NUMBER =
-            "UPDATE AMS_ORDERS "
-          + "   SET TRACKING_NUMBER = :trackingNumber, SHIPPED_DT = SYSTIMESTAMP,"
-          + "       ORDER_STATUS_CD = 'SHIPPED', MODIFIED_DT = SYSTIMESTAMP, MODIFIED_BY = :userId "
-          + " WHERE ORDER_ID = :orderId ";
-
-    private static final String MARK_DESPATCHED =
-            "UPDATE AMS_ORDERS "
-          + "   SET ASSET_ID = :assetId,"
-          + "       TRACKING_NUMBER = :trackingNumber,"
-          + "       SHIPPED_DT = SYSTIMESTAMP,"
-          + "       ORDER_STATUS_CD = 'SHIPPED',"
-          + "       MODIFIED_DT = SYSTIMESTAMP, MODIFIED_BY = :userId "
-          + " WHERE ORDER_ID = :orderId "
-          + "   AND ORDER_STATUS_CD = 'SUBMITTED' ";
-
     private static final RowMapper<Order> ORDER_MAPPER = new OrderMapper();
 
     @Override
@@ -199,43 +162,6 @@ public class OrderDAOImpl extends BaseDAO implements OrderDAO {
                         .build());
     }
 
-    @Override
-    public int updateOrderStatus(final long orderId, final OrderStatusType status, final String userId) {
-        return getNamedParameterJdbcTemplate().update(UPDATE_ORDER_STATUS,
-                ParameterRepository.create()
-                        .with(CommonConstants.PARAM_STATUS_CODE, code(status))
-                        .with(CommonConstants.PARAM_USER_ID, userId)
-                        .with(CommonConstants.PARAM_ORDER_ID, Long.valueOf(orderId))
-                        .build());
-    }
-
-    @Override
-    public int cancelOrder(final long orderId, final String reason, final boolean withPenalty,
-            final Date cancelledDate, final String userId) {
-        final int updated = getNamedParameterJdbcTemplate().update(CANCEL_ORDER,
-                ParameterRepository.create()
-                        .withDate("cancelledDate", cancelledDate == null ? new Date() : cancelledDate)
-                        .with("reason", reason)
-                        .withFlag("penaltyFlag", withPenalty)
-                        .with(CommonConstants.PARAM_USER_ID, userId)
-                        .with(CommonConstants.PARAM_ORDER_ID, Long.valueOf(orderId))
-                        .build());
-        if (updated == 0) {
-            logger.warn("Cancel of order {} updated no rows; it was already closed", Long.valueOf(orderId));
-        }
-        return updated;
-    }
-
-    @Override
-    public int updateTrackingNumber(final long orderId, final String trackingNumber, final String userId) {
-        return getNamedParameterJdbcTemplate().update(UPDATE_TRACKING_NUMBER,
-                ParameterRepository.create()
-                        .with("trackingNumber", trackingNumber)
-                        .with(CommonConstants.PARAM_USER_ID, userId)
-                        .with(CommonConstants.PARAM_ORDER_ID, Long.valueOf(orderId))
-                        .build());
-    }
-
     private static String code(final org.example.am.shared.domain.LoadableType type) {
         return type == null ? null : type.getCode();
     }
@@ -285,22 +211,5 @@ public class OrderDAOImpl extends BaseDAO implements OrderDAO {
             order.setShippingWindowTimeslotId(ConversionUtils.getLong(rs, "SHIP_WINDOW_ID"));
             return order;
         }
-    }
-
-    @Override
-    public int markDespatched(final long orderId, final long assetId, final String trackingNumber,
-            final String userId) {
-        final int updated = getNamedParameterJdbcTemplate().update(MARK_DESPATCHED,
-                ParameterRepository.create()
-                        .with(CommonConstants.PARAM_ORDER_ID, Long.valueOf(orderId))
-                        .with(CommonConstants.PARAM_ASSET_ID, Long.valueOf(assetId))
-                        .with("trackingNumber", trackingNumber)
-                        .with(CommonConstants.PARAM_USER_ID, userId)
-                        .build());
-        if (updated == 0) {
-            logger.warn("Despatch of order {} updated no rows; it was no longer submitted",
-                    Long.valueOf(orderId));
-        }
-        return updated;
     }
 }

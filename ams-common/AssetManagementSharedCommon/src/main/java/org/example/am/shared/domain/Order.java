@@ -57,6 +57,9 @@ public class Order extends BaseDomain {
     private List<SubscriberPc> subscriberPcs = new ArrayList<SubscriberPc>();
     private Timeslot shippingWindow;
 
+    /** The on-site visit an install order books. Carries the chosen timeslot until it is placed. */
+    private Installation installation;
+
     /*
      * Foreign keys, held alongside the objects they point at rather than instead of them.
      *
@@ -480,6 +483,20 @@ public class Order extends BaseDomain {
             seats += pc.getUserCount() == null ? 1 : pc.getUserCount().intValue();
         }
         return seats;
+    }
+
+    public Installation getInstallation() {
+        return installation;
+    }
+
+    public void setInstallation(final Installation installation) {
+        this.installation = installation;
+    }
+
+    /** @return {@code true} when the order holds a booked installation timeslot */
+    public boolean isInstallationScheduled() {
+        return installation != null && installation.getTimeslot() != null
+                && installation.getTimeslot().getTimeslotId() != null;
     }
 
     @Override
