@@ -106,6 +106,22 @@ public class SchemaInstallerTest {
                 count("SELECT COUNT(*) FROM AMS_LDAP_GROUP_ROLES") > 20);
     }
 
+    @Test
+    public void theDemoTierLeavesEveryCustomerAbleToOrder() throws Exception {
+        new SchemaInstaller().install(dataSource, true);
+
+        // The three conditions of Customer.isOrderingEnabled(), asked of the rows directly. The
+        // core tier parks customers on the failing side of each one for the DAO tests; on a stack
+        // somebody is clicking through, that reads as two customers out of three being broken.
+        assertEquals("a customer is inactive or has ordering switched off", 0,
+                count("SELECT COUNT(*) FROM AMS_CUSTOMERS "
+                        + "WHERE ACTIVE_FL <> 'Y' OR CAN_SUBMIT_ORDERS_FL <> 'Y'"));
+        assertEquals("a customer has no active service", 0,
+                count("SELECT COUNT(*) FROM AMS_CUSTOMERS c WHERE NOT EXISTS ("
+                        + "SELECT 1 FROM AMS_SERVICES s WHERE s.CUSTOMER_ID = c.CUSTOMER_ID "
+                        + "AND s.SERVICE_STATUS_CD = 'ACTIVE')"));
+    }
+
     private int count(final String sql) throws Exception {
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement();
