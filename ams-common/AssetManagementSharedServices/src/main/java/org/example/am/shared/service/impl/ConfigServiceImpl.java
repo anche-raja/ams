@@ -8,7 +8,6 @@ import org.example.am.shared.dao.ConfigDAO;
 import org.example.am.shared.domain.PropertyType;
 import org.example.am.shared.service.ConfigService;
 import org.example.am.shared.utils.CommonConstants;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,8 +20,11 @@ public class ConfigServiceImpl implements ConfigService {
 
     private static final String PRODUCTION_ENVIRONMENT = "PRODUCTION";
 
-    @Autowired
-    private ConfigDAO configDAO;
+    private final ConfigDAO configDAO;
+
+    public ConfigServiceImpl(final ConfigDAO configDAO) {
+        this.configDAO = configDAO;
+    }
 
     @Override
     public String getString(final PropertyType propertyType, final String defaultValue) {
@@ -77,9 +79,5 @@ public class ConfigServiceImpl implements ConfigService {
     @Override
     public String getEnvironmentName() {
         return getString(PropertyType.ENVIRONMENT_NAME, PRODUCTION_ENVIRONMENT);
-    }
-
-    public void setConfigDAO(final ConfigDAO configDAO) {
-        this.configDAO = configDAO;
     }
 }

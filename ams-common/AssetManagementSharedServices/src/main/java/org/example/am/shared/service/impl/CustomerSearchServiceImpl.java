@@ -6,7 +6,6 @@ import org.example.am.shared.dao.CustomerSearchDAO;
 import org.example.am.shared.domain.Customer;
 import org.example.am.shared.service.CustomerSearchService;
 import org.example.am.shared.utils.CommonConstants;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,8 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 public class CustomerSearchServiceImpl implements CustomerSearchService {
 
-    @Autowired
-    private CustomerSearchDAO customerSearchDAO;
+    private final CustomerSearchDAO customerSearchDAO;
+
+    public CustomerSearchServiceImpl(final CustomerSearchDAO customerSearchDAO) {
+        this.customerSearchDAO = customerSearchDAO;
+    }
 
     @Override
     public List<Customer> search(final String term) {
@@ -55,9 +57,5 @@ public class CustomerSearchServiceImpl implements CustomerSearchService {
             }
         }
         return value.length() > 0;
-    }
-
-    public void setCustomerSearchDAO(final CustomerSearchDAO customerSearchDAO) {
-        this.customerSearchDAO = customerSearchDAO;
     }
 }

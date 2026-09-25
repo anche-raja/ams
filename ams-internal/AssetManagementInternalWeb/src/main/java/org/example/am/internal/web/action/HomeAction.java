@@ -13,7 +13,6 @@ import org.example.am.shared.service.CustomerSearchService;
 import org.example.am.shared.service.CustomerService;
 import org.example.am.shared.service.OrderService;
 import org.example.am.shared.utils.CommonConstants;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -29,18 +28,22 @@ public class HomeAction extends BaseAction {
 
     private static final long serialVersionUID = 1L;
 
-    @Autowired
-    private transient CustomerSearchService customerSearchService;
+    private final transient CustomerSearchService customerSearchService;
 
-    @Autowired
-    private transient CustomerService customerService;
+    private final transient CustomerService customerService;
 
-    @Autowired
-    private transient OrderService orderService;
+    private final transient OrderService orderService;
 
     private List<Customer> customerList = new ArrayList<Customer>();
     private List<Order> orders = new ArrayList<Order>();
     private Long selectedCustomerId;
+
+    public HomeAction(final CustomerSearchService customerSearchService,
+            final CustomerService customerService, final OrderService orderService) {
+        this.customerSearchService = customerSearchService;
+        this.customerService = customerService;
+        this.orderService = orderService;
+    }
 
     public String home() throws Exception {
         final String denied = requireRole(SecurityRoleType.INT_SEARCH_CUSTOMERS);

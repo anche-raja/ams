@@ -11,7 +11,7 @@ import org.example.am.shared.model.address.ValidatableAddress;
 import org.example.am.shared.service.ConfigService;
 import org.example.am.shared.service.RestService;
 import org.example.am.shared.utils.RestLogger;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -32,14 +32,14 @@ public class RestServiceImpl implements RestService {
     private static final String ERROR_UNAVAILABLE = "SERVICE_UNAVAILABLE";
     private static final String ERROR_NOT_CONFIGURED = "NOT_CONFIGURED";
 
-    @Autowired
+    // TODO(migration): RestTemplate is retained deliberately. It still exists and is not deprecated
+    // in Spring 6. The externally-provided 'restTemplate' bean may carry custom interceptors and an
+    // error handler; a mechanical rewrite to RestClient is riskier than leaving it. See manual_flag.
     private RestTemplate restTemplate;
 
-    @Autowired
-    private ConfigService configService;
+    private final ConfigService configService;
 
-    @Autowired
-    private RestLogger restLogger;
+    private final RestLogger restLogger;
 
     /**
      * Used when no endpoint is configured, if one has been supplied.
@@ -47,18 +47,30 @@ public class RestServiceImpl implements RestService {
      * <p>Optional on purpose: production configures a URL and never has one of these. The wiring
      * that decides whether to provide it is in the web module, because that is where the profile
      * is known - see {@code RestConfig}.</p>
+     *
+     * <p>Resolved lazily through an {@link ObjectProvider} so that an absent bean does not fail
+     * fast at startup under Spring 6's tightened optional-injection resolution.</p>
      */
-    @Autowired(required = false)
-    private RestService addressValidationFallback;
+    private final ObjectProvider<RestService> addressValidationFallbackProvider;
+
+    public RestServiceImpl(final RestTemplate restTemplate, final ConfigService configService,
+            final RestLogger restLogger,
+            final ObjectProvider<RestService> addressValidationFallbackProvider) {
+        this.restTemplate = restTemplate;
+        this.configService = configService;
+        this.restLogger = restLogger;
+        this.addressValidationFallbackProvider = addressValidationFallbackProvider;
+    }
 
     @Override
     public AddressValidationResponse postAddressValidation(final Address address,
             final String requestId) {
         final String url = configService.getString(PropertyType.ADDRESS_VALIDATION_URL, null);
         if (url == null) {
-            if (addressValidationFallback != null) {
+            final RestService fallback = addressValidationFallbackProvider.getIfAvailable();
+            if (fallback != null) {
                 LOGGER.debug("No address validation endpoint configured; using the fallback");
-                return addressValidationFallback.postAddressValidation(address, requestId);
+                return fallback.postAddressValidation(address, requestId);
             }
             LOGGER.warn("Address validation URL is not configured; skipping validation");
             return errorResponse(requestId, ERROR_NOT_CONFIGURED,
@@ -111,17 +123,5 @@ public class RestServiceImpl implements RestService {
 
     public void setRestTemplate(final RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
-    }
-
-    public void setConfigService(final ConfigService configService) {
-        this.configService = configService;
-    }
-
-    public void setRestLogger(final RestLogger restLogger) {
-        this.restLogger = restLogger;
-    }
-
-    public void setAddressValidationFallback(final RestService addressValidationFallback) {
-        this.addressValidationFallback = addressValidationFallback;
     }
 }

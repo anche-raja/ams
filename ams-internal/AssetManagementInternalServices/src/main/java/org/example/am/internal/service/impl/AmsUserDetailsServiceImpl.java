@@ -12,7 +12,6 @@ import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.internal.security.WebSealPrincipal;
 import org.example.am.internal.service.AmsUserDetailsService;
 import org.example.am.internal.service.dao.AmsUserDetailsDAO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -28,8 +27,11 @@ public class AmsUserDetailsServiceImpl implements AmsUserDetailsService {
 
     private static final Logger LOGGER = LogManager.getLogger(AmsUserDetailsServiceImpl.class);
 
-    @Autowired
     private AmsUserDetailsDAO amsUserDetailsDAO;
+
+    public AmsUserDetailsServiceImpl(final AmsUserDetailsDAO amsUserDetailsDAO) {
+        this.amsUserDetailsDAO = amsUserDetailsDAO;
+    }
 
     @Override
     public UserDetails loadUserDetails(final Authentication authentication) {

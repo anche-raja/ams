@@ -16,7 +16,6 @@ import org.example.am.shared.domain.Order;
 import org.example.am.shared.domain.Timeslot;
 import org.example.am.shared.service.InstallationCalendarService;
 import org.example.am.shared.service.OrderService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -47,11 +46,9 @@ public class InstallAppointmentAction extends InstallOrderBaseAction {
 
     private static final int MAX_COMMENTS_LENGTH = 2000;
 
-    @Autowired
-    private transient InstallationCalendarService installationCalendarService;
+    private final transient InstallationCalendarService installationCalendarService;
 
-    @Autowired
-    private transient OrderService orderService;
+    private final transient OrderService orderService;
 
     private String region;
     private Date earliestDate;
@@ -60,6 +57,12 @@ public class InstallAppointmentAction extends InstallOrderBaseAction {
     /** Set once the order has been placed, for the redirect to the confirmation. */
     private Long placedOrderId;
     private boolean appointmentLost;
+
+    public InstallAppointmentAction(final InstallationCalendarService installationCalendarService,
+            final OrderService orderService) {
+        this.installationCalendarService = installationCalendarService;
+        this.orderService = orderService;
+    }
 
     public String initAppointment() throws Exception {
         final InstallOrderModel model = getModel();
