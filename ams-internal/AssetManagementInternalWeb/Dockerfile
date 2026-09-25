@@ -5,29 +5,22 @@
 # application was installed into a shared application server before this - but a container runs one
 # application, so the extra packaging layer buys nothing here.
 # ------------------------------------------------------------------------------
-# The specification names 26.0.0.2-full-java8-openj9-ubi-minimal. That tag does not exist, and
-# neither does any java8+openj9 combination: IBM publishes Java 8 Liberty images only on IBM Java,
-# and OpenJ9 variants start at Java 11. This is the closest real equivalent - same Liberty "full"
-# feature set, same Java 8.
-#
-# Java 8 is kept rather than moving to a Java 11/17 image because the whole build targets it:
-# maven.compiler.target=1.8, the jdbc-4.1 feature in server.xml, and ojdbc8 rather than ojdbc11.
-# The cost is that no Java 8 Liberty image has an arm64 build, so on Apple Silicon this runs
-# under emulation - see the platform pin in docker-compose.yml.
-FROM websphere-liberty:26.0.0.8-full-java8-ibmjava
+# Tomcat 10.1 (Servlet 6 / Jakarta EE 10). There is no Java 8 Tomcat 10.1 base image - Tomcat
+# 10.1 requires Java 11 or newer - so the old java8/OpenJ9 base cannot be carried across. Using
+# the Temurin JDK 17 variant; see manual_flags for the JDK upgrade this forces on the build.
+FROM tomcat:10.1-jdk17-temurin
 
 USER root
 
 # ------------------------------------------------------------------------------
 # Oracle JDBC driver.
 #
-# Copied in as a file rather than resolved from Maven Central: the runtime driver is
-# ojdbc8-23.8.0.25.04, matching the Oracle 23ai server it talks to. It is newer than the 12.2.0.1 the
-# build compiles and tests against, which is fine - the runtime driver and the test-scope one never
-# have to agree. ojdbc8 rather than ojdbc11 because Liberty's jdbc-4.1 feature and the java8 base
-# image both require it. server.xml picks it up as a shared library from this directory.
+# The driver is now Tomcat's, loaded from $CATALINA_BASE/lib by Tomcat's own connection pool
+# (the pool is configured in META-INF/context.xml). Copied in as a file rather than resolved from
+# Maven Central, matching the ojdbc8-23.8.0.25.04 runtime driver that talks to the Oracle 23ai
+# server.
 # ------------------------------------------------------------------------------
-COPY --chown=1001:0 lib/ojdbc8-23.8.0.25.04.jar /config/configDropins/lib/
+COPY lib/ojdbc8-23.8.0.25.04.jar /usr/local/tomcat/lib/
 
 # ------------------------------------------------------------------------------
 # Internal certificate authority.
@@ -36,11 +29,9 @@ COPY --chown=1001:0 lib/ojdbc8-23.8.0.25.04.jar /config/configDropins/lib/
 # which no public trust store knows about. Importing it into the JVM's cacerts is what lets the
 # outbound calls complete; without it every one fails the TLS handshake.
 # ------------------------------------------------------------------------------
-COPY --chown=1001:0 certs/internal-ca.crt /tmp/internal-ca.crt
-# The keystore path is detected rather than hard-coded. JAVA_HOME points at the JRE itself in this
-# image (/opt/ibm/java/jre), so cacerts sits at $JAVA_HOME/lib/security - whereas on a JDK layout,
-# and on Java 8 images where JAVA_HOME is the JDK root, it is under $JAVA_HOME/jre/lib/security.
-# Guessing wrong fails the build with an unhelpful keytool error.
+COPY certs/internal-ca.crt /tmp/internal-ca.crt
+# The keystore path is detected rather than hard-coded. On the Temurin JDK 17 layout cacerts sits
+# at $JAVA_HOME/lib/security/cacerts; the fallback covers a JRE-root layout.
 RUN set -eux; \
     CACERTS="$JAVA_HOME/lib/security/cacerts"; \
     [ -f "$CACERTS" ] || CACERTS="$JAVA_HOME/jre/lib/security/cacerts"; \
@@ -52,38 +43,25 @@ RUN set -eux; \
       -storepass changeit; \
     rm -f /tmp/internal-ca.crt
 
-# ------------------------------------------------------------------------------
-# Liberty configuration.
-# ------------------------------------------------------------------------------
-COPY --chown=1001:0 src/main/liberty/config/server.xml            /config/
-COPY --chown=1001:0 src/main/liberty/config/jvm.options           /config/
-COPY --chown=1001:0 src/main/liberty/config/bootstrap.properties  /config/
-
-RUN mkdir -p /logs && chown -R 1001:0 /logs && chmod -R g+rw /logs
+RUN mkdir -p /logs && chmod -R g+rw /logs
 
 # ------------------------------------------------------------------------------
 # The application. Copied last: it is the layer that changes on every build, so everything above
-# it stays cached.
+# it stays cached. The WAR name is kept as AssetManagementInternalWeb.war so Tomcat derives the
+# context root /AssetManagementInternalWeb - the same context root the old server used.
 # ------------------------------------------------------------------------------
-COPY --chown=1001:0 target/AssetManagementInternalWeb.war /config/apps/
+COPY target/AssetManagementInternalWeb.war /usr/local/tomcat/webapps/AssetManagementInternalWeb.war
 
-USER 1001
-
-EXPOSE 9081 9444
-
-# Warms the shared class cache and validates the configuration at build time rather than on the
-# first request in production.
-RUN configure.sh
+# Tomcat listens on 8080 (HTTP). The old Liberty ports 9081/9444 are gone; configure TLS in
+# Tomcat's conf/server.xml if it is terminated in-container rather than at the reverse proxy.
+EXPOSE 8080
 
 # The health endpoint is permitted without authentication precisely so this can reach it.
 #
 # Written against bash's /dev/tcp rather than curl: this image ships neither curl nor wget, so the
 # obvious version of this check fails with "curl: not found" and reports the container unhealthy
 # forever while the application is running perfectly.
-#
-# start-period is generous because on Apple Silicon this container is emulated (see the platform
-# pin in docker-compose.yml) and Liberty takes considerably longer to open its port.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=5 \
-  CMD bash -c 'exec 3<>/dev/tcp/127.0.0.1/9081 && \
+  CMD bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 && \
       printf "GET /AssetManagementInternalWeb/health HTTP/1.0\r\n\r\n" >&3 && \
       grep -q "200" <&3' || exit 1
