@@ -1,8 +1,8 @@
 package org.example.am.internal.web.config;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Asserts that every form which changes state carries the Spring Security CSRF token.
@@ -70,13 +70,13 @@ public class JspFormCsrfTest {
 
     @Test
     public void thereAreJspsToCheck() throws IOException {
-        assertFalse("no JSPs found under " + WEBAPP, jsps().isEmpty());
+        assertFalse(jsps().isEmpty(), "no JSPs found under " + WEBAPP);
     }
 
     @Test
     public void theCsrfFragmentExists() {
-        assertTrue(CSRF_INCLUDE + " is missing",
-                WEBAPP.resolve("WEB-INF/common/csrfToken.jsp").toFile().isFile());
+        assertTrue(WEBAPP.resolve("WEB-INF/common/csrfToken.jsp").toFile().isFile(),
+                CSRF_INCLUDE + " is missing");
     }
 
     /**
@@ -144,15 +144,15 @@ public class JspFormCsrfTest {
     @Test
     public void thePageExposesTheTokenToScript() throws IOException {
         final String header = read(WEBAPP.resolve("WEB-INF/common/header.jsp"));
-        assertTrue("header.jsp must publish the CSRF token for js/common.js",
-                header.contains("ams-csrf-token"));
-        assertTrue("header.jsp must publish the CSRF header name",
-                header.contains("ams-csrf-header"));
+        assertTrue(header.contains("ams-csrf-token"),
+                "header.jsp must publish the CSRF token for js/common.js");
+        assertTrue(header.contains("ams-csrf-header"),
+                "header.jsp must publish the CSRF header name");
 
         final String script = read(WEBAPP.resolve("js/common.js"));
-        assertTrue("common.js must read the CSRF meta tags",
-                script.contains("ams-csrf-token") && script.contains("ams-csrf-header"));
-        assertTrue("common.js must set the CSRF header on its requests",
-                script.contains("setRequestHeader(csrf.header, csrf.token)"));
+        assertTrue(script.contains("ams-csrf-token") && script.contains("ams-csrf-header"),
+                "common.js must read the CSRF meta tags");
+        assertTrue(script.contains("setRequestHeader(csrf.header, csrf.token)"),
+                "common.js must set the CSRF header on its requests");
     }
 }
