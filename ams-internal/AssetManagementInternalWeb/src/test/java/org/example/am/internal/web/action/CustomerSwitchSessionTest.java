@@ -47,7 +47,7 @@ public class CustomerSwitchSessionTest {
     public void setUp() {
         request = new MockHttpServletRequest();
         action = new TestAction();
-        action.setServletRequest(request);
+        action.withServletRequest(request);
     }
 
     private static Customer customer(final long id) {

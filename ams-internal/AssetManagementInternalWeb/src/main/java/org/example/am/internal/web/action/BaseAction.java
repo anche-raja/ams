@@ -11,8 +11,8 @@ import jakarta.servlet.http.HttpSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.struts2.interceptor.ServletRequestAware;
-import org.apache.struts2.interceptor.ServletResponseAware;
+import org.apache.struts2.action.ServletRequestAware;
+import org.apache.struts2.action.ServletResponseAware;
 import org.example.am.internal.security.AmsUser;
 import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.internal.utils.InternalConstants;
@@ -51,12 +51,12 @@ public abstract class BaseAction extends ActionSupport
     private transient ConfigService configService;
 
     @Override
-    public void setServletRequest(final HttpServletRequest servletRequest) {
+    public void withServletRequest(final HttpServletRequest servletRequest) {
         this.servletRequest = servletRequest;
     }
 
     @Override
-    public void setServletResponse(final HttpServletResponse servletResponse) {
+    public void withServletResponse(final HttpServletResponse servletResponse) {
         this.servletResponse = servletResponse;
     }
 
