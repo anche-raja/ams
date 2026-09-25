@@ -28,6 +28,38 @@ Builds and installs all three reactors in dependency order. `./build.sh package`
 Requires JDK 17 with `JAVA_HOME` pointed at it (the script defaults to a Zulu 17 install) and
 Maven 3.9. The compiler targets Java 8 bytecode throughout.
 
+### Windows
+
+`build.sh` hardcodes a macOS layout. On Windows the toolchain lives in `C:\tools`, which an AWS
+WorkSpaces restart wipes, so restore it first in every fresh session - it extracts JDK 8, JDK 21,
+Maven and a Maven repository snapshot from the zips beside it, sets `JAVA_HOME`, and maps `X:` to
+this directory:
+
+```powershell
+. 'D:\r.anche\My Files\Home Folder\mysoftware\tools\setup-env.ps1'
+```
+
+Then build from Git Bash with the script for the JDK you want:
+
+```bash
+./build-jdk8.sh             # compile and package on JDK 8, the deployment JDK
+./build-jdk21.sh            # compile and package on JDK 21
+./build-jdk8.sh test        # any Maven goal; extra arguments go to Maven
+./build-jdk8.sh install -DskipTests
+```
+
+Both pin their JDK regardless of the inherited `JAVA_HOME` - JDK 26 is on the system PATH and the
+pinned JaCoCo and Mockito fail on it - and both build through `X:`, because the repository's own
+path already takes its longest file past `MAX_PATH`. `build.ps1` is the PowerShell equivalent of
+`build-jdk21.sh`.
+
+`build-jdk8.sh` runs the tests on JDK 21 (Surefire's `-Djvm`). The parent POM hardcodes
+`--add-opens` into the Surefire `argLine` for the pinned Mockito, and Java 8 refuses to start with
+that flag; the code under test is still the Java 8 bytecode compiled by JDK 8.
+
+The two scripts share `target\`, so the WAR there is from whichever ran last. Both emit Java 8
+bytecode, so either runs on either JDK.
+
 ## Architecture
 
 **Two web frameworks side by side.** Struts 2 handles every functional endpoint through
@@ -115,6 +147,46 @@ almost all of which is the vendored Dojo tree.
 Embedded H2 is a file, and exactly one JVM may hold it. A server left behind by an earlier run keeps
 the lock and the next start fails with "Database may be already in use", which names the symptom and
 not the cause - so `run` and `stop` both clear strays first.
+
+`build-jdk8.sh run` / `build-jdk21.sh run` (and `stop`) do the same on Windows.
+
+### On Tomcat 9 (Windows)
+
+The WAR also runs on Apache Tomcat 9, on either JDK, with no change to the application. Two
+instances share one Tomcat install, so both can be up at once:
+
+| Instance | JDK | URL | Directory |
+|---|---|---|---|
+| `jdk8` | 8 | http://localhost:8080/AssetManagementInternalWeb | `C:\tools\tomcat-jdk8` |
+| `jdk21` | 21 | http://localhost:8081/AssetManagementInternalWeb | `C:\tools\tomcat-jdk21` |
+
+```bash
+./build-jdk8.sh && ./tomcat.sh jdk8 deploy   # build, then deploy and start on JDK 8
+./tomcat.sh jdk8 deploy     # stop, copy in target\AssetManagementInternalWeb.war, start
+./tomcat.sh jdk8 start      # start without redeploying
+./tomcat.sh jdk8 stop
+./tomcat.sh jdk8 restart
+./tomcat.sh jdk8 status
+./tomcat.sh jdk8 logs       # follow logs\console.log
+```
+
+Substitute `jdk21` for the other instance. `start` and `deploy` return once `/health` answers.
+
+Tomcat 9 rather than 10 or later: the application is Servlet 3.1 / JSP 2.3 on `javax.*`, and
+Tomcat 10 moved to `jakarta.*`. Each instance recreates what Liberty supplied - the
+`jdbc/amsInternalDS` pool behind `web.xml`'s `resource-ref` (a context descriptor under
+`conf\Catalina\localhost`), the H2 driver (in the instance `lib\`) and `jvm.options` (in
+`bin\setenv.bat`, including `-Dspring.profiles.active=local`). Each has its own H2 file under
+`data\`, since embedded H2 admits one JVM. Only HTTP is configured.
+
+`tomcat.sh` extracts Tomcat from `tools\dl\tomcat.zip` when `C:\tools\tomcat` is missing and
+rewrites each instance's configuration on every run, so it needs nothing after a restart beyond
+`setup-env.ps1`. Hand edits to `server.xml`, the context descriptor or `setenv.bat` are overwritten;
+change the script instead.
+
+Console output goes to `logs\console.log`, not the terminal. The application's log4j console
+appender holds a lock while it writes, so a JVM left writing to a terminal pipe that nobody reads
+any more hangs every request thread once the pipe fills.
 
 ### The Oracle stack
 
