@@ -14,7 +14,7 @@
   <artifactId>ams-internal</artifactId>
   <packaging>pom</packaging>
   <name>AMS Internal</name>
-  <description>The internal asset management application: a Struts 2 and Spring MVC hybrid deployed to WebSphere Liberty.</description>
+  <description>The internal asset management application: a Struts 2 and Spring MVC hybrid deployed to Apache Tomcat 10.1.</description>
 
   <modules>
     <module>AssetManagementInternalCommon</module>

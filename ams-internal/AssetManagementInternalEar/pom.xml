@@ -14,8 +14,8 @@
   <name>Asset Management Internal EAR</name>
   <description>
     Packaging only - no Java. Retained from the pre-container deployment, where the application was
-    installed into a shared application server as an EAR. The Liberty image deploys the WAR
-    directly, so this module is built but not what runs.
+    installed into a shared application server as an EAR. The Tomcat 10.1 servlet container deploys
+    the WAR directly, so this module is built but not what runs.
   </description>
 
   <dependencies>
@@ -32,6 +32,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-ear-plugin</artifactId>
+        <version>3.3.0</version>
         <configuration>
           <version>6</version>
           <defaultLibBundleDir>lib</defaultLibBundleDir>
