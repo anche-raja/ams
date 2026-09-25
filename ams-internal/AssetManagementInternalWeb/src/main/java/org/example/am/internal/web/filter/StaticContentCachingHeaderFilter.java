@@ -33,10 +33,10 @@ public class StaticContentCachingHeaderFilter implements Filter {
     @Override
     public void doFilter(final ServletRequest request, final ServletResponse response,
             final FilterChain chain) throws IOException, ServletException {
-        if (response instanceof HttpServletResponse) {
+        if (response instanceof HttpServletResponse httpResponse) {
             // Set before the chain runs so the downstream security headers writer overwrites
             // nothing: whoever writes last wins, and for these paths that should be us.
-            ((HttpServletResponse) response).setHeader(CACHE_CONTROL,
+            httpResponse.setHeader(CACHE_CONTROL,
                     "max-age=" + MAX_AGE_SECONDS + ", private");
         }
         chain.doFilter(request, response);

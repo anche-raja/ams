@@ -22,8 +22,8 @@ public class RemoveRolesPrefixPostProcessor implements BeanPostProcessor {
     @Override
     public Object postProcessBeforeInitialization(final Object bean, final String beanName)
             throws BeansException {
-        if (bean instanceof RoleVoter) {
-            ((RoleVoter) bean).setRolePrefix("");
+        if (bean instanceof RoleVoter roleVoter) {
+            roleVoter.setRolePrefix("");
             LOGGER.debug("Cleared the role prefix on {}; roles are voted on as bare codes such as {}",
                     beanName, SecurityRoleType.INT_SEARCH_ASSETS.getCode());
         }

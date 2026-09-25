@@ -103,10 +103,9 @@ public class IPRange implements Serializable {
         if (this == other) {
             return true;
         }
-        if (!(other instanceof IPRange)) {
+        if (!(other instanceof IPRange that)) {
             return false;
         }
-        final IPRange that = (IPRange) other;
         return start == that.start && end == that.end;
     }
 

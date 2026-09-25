@@ -28,7 +28,7 @@ public class DevWebSealRequestHeaderAuthenticationFilter
             LogManager.getLogger(DevWebSealRequestHeaderAuthenticationFilter.class);
 
     private String developerUsername = "devuser";
-    private List<String> developerGroups = new ArrayList<String>();
+    private List<String> developerGroups = new ArrayList<>();
 
     @Override
     protected Object getPreAuthenticatedPrincipal(final HttpServletRequest request) {
@@ -54,6 +54,6 @@ public class DevWebSealRequestHeaderAuthenticationFilter
 
     public void setDeveloperGroups(final List<String> developerGroups) {
         this.developerGroups = developerGroups == null
-                ? new ArrayList<String>() : new ArrayList<String>(developerGroups);
+                ? new ArrayList<>() : new ArrayList<>(developerGroups);
     }
 }

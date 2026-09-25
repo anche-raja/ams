@@ -120,10 +120,10 @@ public abstract class BaseAction extends ActionSupport
     protected AmsUser getAmsUser() {
         final Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof AmsUser)) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof AmsUser user)) {
             return null;
         }
-        return (AmsUser) authentication.getPrincipal();
+        return user;
     }
 
     protected String getUserId() {

@@ -54,14 +54,10 @@ public class AddressValidationInterceptor extends AbstractInterceptor {
 
     @Override
     public String intercept(final ActionInvocation invocation) throws Exception {
-        invocation.addPreResultListener(new PreResultListener() {
-
-            @Override
-            public void beforeResult(final ActionInvocation inv, final String resultCode) {
-                final String replacement = validate(inv, resultCode);
-                if (replacement != null) {
-                    inv.setResultCode(replacement);
-                }
+        invocation.addPreResultListener((inv, resultCode) -> {
+            final String replacement = validate(inv, resultCode);
+            if (replacement != null) {
+                inv.setResultCode(replacement);
             }
         });
         return invocation.invoke();
@@ -121,7 +117,7 @@ public class AddressValidationInterceptor extends AbstractInterceptor {
             return null;
         }
         final Object model = ((ModelDriven<Object>) action).getModel();
-        return model instanceof InstallOrderModel ? (InstallOrderModel) model : null;
+        return model instanceof InstallOrderModel installOrderModel ? installOrderModel : null;
     }
 
     /**

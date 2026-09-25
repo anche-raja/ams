@@ -110,8 +110,8 @@ public class ValidateSpecialCharacterInterceptor extends AbstractInterceptor {
         LOGGER.warn("Rejected request to {}: parameter '{}' contains unaccepted characters",
                 invocation.getProxy().getActionName(), parameterName);
         final Object action = invocation.getAction();
-        if (action instanceof ActionSupport) {
-            ((ActionSupport) action).addActionError(
+        if (action instanceof ActionSupport actionSupport) {
+            actionSupport.addActionError(
                     "The value supplied for '" + parameterName + "' contains characters that are"
                     + " not accepted. Please remove them and try again.");
         }

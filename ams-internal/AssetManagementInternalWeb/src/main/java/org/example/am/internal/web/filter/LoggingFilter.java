@@ -37,8 +37,7 @@ public class LoggingFilter implements Filter {
     public void doFilter(final ServletRequest request, final ServletResponse response,
             final FilterChain chain) throws IOException, ServletException {
         try {
-            if (request instanceof HttpServletRequest) {
-                final HttpServletRequest httpRequest = (HttpServletRequest) request;
+            if (request instanceof HttpServletRequest httpRequest) {
                 LoggingUtils.setUserId(httpRequest.getRemoteUser());
                 LoggingUtils.setActivityType(LoggingConstants.ACTIVITY_HTTP);
                 if (LOGGER.isDebugEnabled()) {

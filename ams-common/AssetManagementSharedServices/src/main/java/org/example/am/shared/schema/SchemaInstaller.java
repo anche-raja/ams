@@ -131,7 +131,7 @@ public class SchemaInstaller {
         final Resource[] scripts = resolver.getResources(location);
         // getResources makes no ordering promise, and these scripts are numbered because the order
         // is load-bearing.
-        final List<Resource> ordered = new ArrayList<Resource>(Arrays.asList(scripts));
+        final List<Resource> ordered = new ArrayList<>(Arrays.asList(scripts));
         ordered.sort(Comparator.comparing(resource -> String.valueOf(resource.getFilename())));
 
         if (ordered.isEmpty()) {

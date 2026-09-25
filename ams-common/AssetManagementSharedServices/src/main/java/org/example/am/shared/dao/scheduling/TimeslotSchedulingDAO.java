@@ -1,9 +1,6 @@
 package org.example.am.shared.dao.scheduling;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -47,8 +44,7 @@ import org.springframework.stereotype.Repository;
 public class TimeslotSchedulingDAO extends BaseDAO {
 
     /** The only entity types that may hold a place. */
-    private static final Set<String> ENTITY_TYPES = Collections.unmodifiableSet(
-            new HashSet<String>(Arrays.asList("INSTALL", "TECHLINE", "NCR", "SHIP")));
+    private static final Set<String> ENTITY_TYPES = Set.of("INSTALL", "TECHLINE", "NCR", "SHIP");
 
     private static final String LOCK_TIMESLOT =
             "SELECT CAPACITY, RESERVED_COUNT, AVAILABLE_FL, START_TM "
@@ -273,7 +269,7 @@ public class TimeslotSchedulingDAO extends BaseDAO {
     }
 
     private static int toInt(final Object value) {
-        return value instanceof Number ? ((Number) value).intValue() : 0;
+        return value instanceof Number number ? number.intValue() : 0;
     }
 
     private static String normalise(final String value) {
