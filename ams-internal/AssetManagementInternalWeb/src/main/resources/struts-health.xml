@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE struts PUBLIC
-    "-//Apache Software Foundation//DTD Struts Configuration 6.0//EN"
-    "https://struts.apache.org/dtds/struts-6.0.dtd">
+    "-//Apache Software Foundation//DTD Struts Configuration 6.5//EN"
+    "https://struts.apache.org/dtds/struts-6.5.dtd">
 <struts>
+
+  <!-- TODO(migration): Struts 7 defaults changed - alwaysSelectFullNamespace now true,
+       fallbackToEmptyNamespace now false. Set explicitly here to preserve existing routing
+       behaviour. Consider adopting the new defaults deliberately once routing is reviewed. -->
+  <constant name="struts.mapper.alwaysSelectFullNamespace" value="false"/>
+  <constant name="struts.actionConfig.fallbackToEmptyNamespace" value="true"/>
 
   <!--
     Mounted at the root namespace with no suffix requirement, so both /health and /health.action

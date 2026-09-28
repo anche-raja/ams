@@ -11,8 +11,8 @@ import jakarta.servlet.http.HttpSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.struts2.interceptor.ServletRequestAware;
-import org.apache.struts2.interceptor.ServletResponseAware;
+import org.apache.struts2.action.ServletRequestAware;
+import org.apache.struts2.action.ServletResponseAware;
 import org.example.am.internal.security.AmsUser;
 import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.internal.utils.InternalConstants;
@@ -24,8 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import com.opensymphony.xwork2.ActionSupport;
-import com.opensymphony.xwork2.ModelDriven;
+import org.apache.struts2.ActionSupport;
+import org.apache.struts2.ModelDriven;
 
 /**
  * The common ground for every action in the application.
@@ -55,12 +55,12 @@ public abstract class BaseAction extends ActionSupport
     private transient ConfigService configService;
 
     @Override
-    public void setServletRequest(final HttpServletRequest servletRequest) {
+    public void withServletRequest(final HttpServletRequest servletRequest) {
         this.servletRequest = servletRequest;
     }
 
     @Override
-    public void setServletResponse(final HttpServletResponse servletResponse) {
+    public void withServletResponse(final HttpServletResponse servletResponse) {
         this.servletResponse = servletResponse;
     }
 
@@ -299,6 +299,11 @@ public abstract class BaseAction extends ActionSupport
     /**
      * Most actions are model driven; those that are not override this.
      */
+    // TODO(migration): does this field bind from a request parameter? getModel() returns 'this'
+    // in the base; concrete ModelDriven subclasses that expose a real model bound from the form
+    // must annotate their own getModel() override with @StrutsParameter(depth = N) at the correct
+    // depth. No annotation is placed here because the base model is the action itself and its
+    // bindable depth is not knowable at this level.
     @Override
     public Object getModel() {
         return this;

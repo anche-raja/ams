@@ -17,7 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import com.opensymphony.xwork2.Action;
+import org.apache.struts2.action.Action;
+import org.apache.struts2.interceptor.parameter.StrutsParameter;
 
 /**
  * The home page: the customers an operator can order for, and the orders already placed for the
@@ -109,6 +110,7 @@ public class HomeAction extends BaseAction {
         return selectedCustomerId;
     }
 
+    @StrutsParameter
     public void setSelectedCustomerId(final Long selectedCustomerId) {
         this.selectedCustomerId = selectedCustomerId;
     }

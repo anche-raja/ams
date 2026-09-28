@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE struts PUBLIC
-    "-//Apache Software Foundation//DTD Struts Configuration 6.0//EN"
-    "https://struts.apache.org/dtds/struts-6.0.dtd">
+    "-//Apache Software Foundation//DTD Struts Configuration 6.5//EN"
+    "https://struts.apache.org/dtds/struts-6.5.dtd">
 <struts>
 
   <!--
@@ -13,9 +13,28 @@
   <constant name="struts.devMode" value="false"/>
   <constant name="struts.i18n.encoding" value="UTF-8"/>
 
+  <!--
+    Routing defaults changed in Struts 7. These two are set explicitly to their pre-7 values to
+    preserve existing URL resolution behaviour across this version upgrade.
+    TODO(migration): consider adopting the Struts 7 defaults deliberately later -
+    struts.mapper.alwaysSelectFullNamespace=true and struts.actionConfig.fallbackToEmptyNamespace=false.
+  -->
+  <constant name="struts.mapper.alwaysSelectFullNamespace" value="false"/>
+  <constant name="struts.actionConfig.fallbackToEmptyNamespace" value="true"/>
+
   <!-- Action beans come from the Spring root context, so they can be autowired. -->
   <constant name="struts.objectFactory" value="spring"/>
   <constant name="struts.objectFactory.spring.autoWire" value="name"/>
+
+  <!--
+    Struts 7 adds an OGNL allowlist and blocks OGNL access to proxied objects. Spring-managed
+    actions carrying AOP annotations (@Transactional, @Secured, @PreAuthorize, @Async, @Cacheable,
+    or custom aspects) are proxied and OGNL can no longer traverse them. The application's own
+    action/model package is allowlisted so OGNL continues to reach the model classes.
+    TODO(migration): confirm each proxied action page still renders; adjust packageNames as needed.
+  -->
+  <constant name="struts.allowlist.enable" value="true"/>
+  <constant name="struts.allowlist.packageNames" value="org.example.am.internal.web"/>
 
   <!--
     Both extensions are recognised. The empty one is what lets /health answer without a suffix,
