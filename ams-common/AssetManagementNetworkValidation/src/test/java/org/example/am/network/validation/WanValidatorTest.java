@@ -1,17 +1,18 @@
 package org.example.am.network.validation;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class WanValidatorTest {
 
     private WanValidator validator;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         validator = new WanValidator();
     }
@@ -56,6 +57,6 @@ public class WanValidatorTest {
     @Test
     public void everyMissingFieldIsReportedAtOnce() {
         final List<String> messages = validator.validate(null, null, null);
-        assertTrue(messages.size() == 3);
+        assertEquals(3, messages.size());
     }
 }
