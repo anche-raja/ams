@@ -128,22 +128,27 @@
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j-impl</artifactId>
+      <artifactId>log4j-slf4j2-impl</artifactId>
     </dependency>
 
-    <!-- Container provided -->
+    <!-- Container provided: Tomcat 10.1 supplies the Servlet 6 / Jakarta EE 10 APIs. -->
     <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
       <scope>provided</scope>
     </dependency>
+    <!-- Tomcat does not ship JSTL: API and implementation are bundled into WEB-INF/lib at compile scope. -->
     <dependency>
-      <groupId>jstl</groupId>
-      <artifactId>jstl</artifactId>
+      <groupId>jakarta.servlet.jsp.jstl</groupId>
+      <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>javax.annotation</groupId>
-      <artifactId>javax.annotation-api</artifactId>
+      <groupId>org.glassfish.web</groupId>
+      <artifactId>jakarta.servlet.jsp.jstl</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
       <scope>provided</scope>
     </dependency>
 
@@ -164,7 +169,23 @@
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-test</artifactId>
-      <version>${spring-security.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -222,59 +243,4 @@
       </resource>
     </resources>
   </build>
-
-  <!--
-    Runs the application natively, with no Docker and no Oracle.
-
-    Kept in a profile so an ordinary `./build.sh` or `./build.sh test` never downloads a Liberty
-    runtime. `./build.sh run` activates it.
-
-    liberty:dev rather than liberty:run: dev uses loose-application mode, writing a .war.xml that
-    points at target/classes and src/main/webapp instead of packaging anything. That matters here
-    because the vendored Dojo build makes the real WAR 37 MB, and liberty:run would copy all of it
-    on every cycle.
-  -->
-  <profiles>
-    <profile>
-      <id>native</id>
-      <dependencies>
-        <!-- Runtime scope: the driver has to reach the server, and copyDependencies puts it where
-             server.xml's <library> fileset looks for it. -->
-        <dependency>
-          <groupId>com.h2database</groupId>
-          <artifactId>h2</artifactId>
-          <scope>runtime</scope>
-        </dependency>
-      </dependencies>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>io.openliberty.tools</groupId>
-            <artifactId>liberty-maven-plugin</artifactId>
-            <version>${liberty.plugin.version}</version>
-            <configuration>
-              <serverName>amsInternal</serverName>
-              <configDirectory>${project.basedir}/src/main/liberty/config</configDirectory>
-              <runtimeArtifact>
-                <groupId>io.openliberty</groupId>
-                <artifactId>openliberty-runtime</artifactId>
-                <version>${openliberty.version}</version>
-                <type>zip</type>
-              </runtimeArtifact>
-              <copyDependencies>
-                <dependencyGroup>
-                  <location>lib</location>
-                  <dependency>
-                    <groupId>com.h2database</groupId>
-                    <artifactId>h2</artifactId>
-                    <version>${h2.version}</version>
-                  </dependency>
-                </dependencyGroup>
-              </copyDependencies>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>

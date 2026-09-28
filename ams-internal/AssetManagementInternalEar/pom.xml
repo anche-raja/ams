@@ -14,7 +14,7 @@
   <name>Asset Management Internal EAR</name>
   <description>
     Packaging only - no Java. Retained from the pre-container deployment, where the application was
-    installed into a shared application server as an EAR. The Liberty image deploys the WAR
+    installed into a shared application server as an EAR. The Tomcat 10.1 deployment deploys the WAR
     directly, so this module is built but not what runs.
   </description>
 
