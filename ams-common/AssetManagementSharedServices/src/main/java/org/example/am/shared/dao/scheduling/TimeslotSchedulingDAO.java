@@ -273,7 +273,7 @@ public class TimeslotSchedulingDAO extends BaseDAO {
     }
 
     private static int toInt(final Object value) {
-        return value instanceof Number ? ((Number) value).intValue() : 0;
+        return value instanceof Number number ? number.intValue() : 0;
     }
 
     private static String normalise(final String value) {

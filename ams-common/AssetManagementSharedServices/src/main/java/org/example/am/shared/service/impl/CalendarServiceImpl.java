@@ -125,7 +125,7 @@ public class CalendarServiceImpl implements CalendarService {
      * scan of the list for every candidate day.
      */
     private static Set<Long> toDayKeys(final List<Date> dates) {
-        final Set<Long> keys = new HashSet<Long>();
+        final Set<Long> keys = new HashSet<>();
         for (final Date date : dates) {
             if (date != null) {
                 keys.add(Long.valueOf(ConversionUtils.truncateToDay(date).getTime()));

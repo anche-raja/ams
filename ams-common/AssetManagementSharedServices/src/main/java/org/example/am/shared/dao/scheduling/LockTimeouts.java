@@ -40,8 +40,8 @@ final class LockTimeouts {
             return true;
         }
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-            if (cause instanceof SQLException
-                    && ((SQLException) cause).getErrorCode() == H2_LOCK_TIMEOUT) {
+            if (cause instanceof SQLException sqlCause
+                    && sqlCause.getErrorCode() == H2_LOCK_TIMEOUT) {
                 return true;
             }
             if (cause == cause.getCause()) {

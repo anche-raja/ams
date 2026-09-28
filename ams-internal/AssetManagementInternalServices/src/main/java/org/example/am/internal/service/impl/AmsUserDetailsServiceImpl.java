@@ -42,7 +42,7 @@ public class AmsUserDetailsServiceImpl implements AmsUserDetailsService {
         final List<SecurityRoleType> roles =
                 amsUserDetailsDAO.getRolesForLdapGroups(principal.getLdapGroups());
 
-        final Collection<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
+        final Collection<GrantedAuthority> authorities = new ArrayList<>();
         // Every authenticated caller gets ROLE_USER; the catch-all URL rule is written against it,
         // so a user whose groups map to nothing can still reach the unauthorised page rather than
         // being bounced by the entry point with no explanation.
@@ -78,8 +78,8 @@ public class AmsUserDetailsServiceImpl implements AmsUserDetailsService {
             return null;
         }
         final Object principal = authentication.getPrincipal();
-        if (principal instanceof WebSealPrincipal) {
-            return (WebSealPrincipal) principal;
+        if (principal instanceof WebSealPrincipal webSealPrincipal) {
+            return webSealPrincipal;
         }
         if (principal == null) {
             return null;
