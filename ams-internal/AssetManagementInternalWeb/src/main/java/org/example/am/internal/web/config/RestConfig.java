@@ -10,7 +10,6 @@ import org.example.am.shared.service.impl.RestSharedTemplateFactory;
 import org.example.am.shared.service.impl.StubRestService;
 import org.example.am.shared.utils.CommonConstants;
 import org.example.am.shared.utils.RestLogger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -30,8 +29,12 @@ public class RestConfig {
 
     private static final Logger LOGGER = LogManager.getLogger(RestConfig.class);
 
-    @Autowired
-    private Environment environment;
+    private final Environment environment;
+
+    // Single constructor: @Autowired is redundant on Spring 6 and has been removed (Rule 1).
+    public RestConfig(final Environment environment) {
+        this.environment = environment;
+    }
 
     /**
      * Supplies the canned address validation service for environments with no real one to call.

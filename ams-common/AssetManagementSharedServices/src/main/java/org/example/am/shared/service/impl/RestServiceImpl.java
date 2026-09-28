@@ -32,14 +32,15 @@ public class RestServiceImpl implements RestService {
     private static final String ERROR_UNAVAILABLE = "SERVICE_UNAVAILABLE";
     private static final String ERROR_NOT_CONFIGURED = "NOT_CONFIGURED";
 
-    @Autowired
-    private RestTemplate restTemplate;
+    // TODO(migration): RestTemplate still exists and is not deprecated in Spring 6. The single
+    // postForObject call here maps cleanly to RestClient, but this bean's type is what RestConfig
+    // (web module) wires by. Changing the injected type is a cross-module change, so it is left in
+    // place deliberately rather than rewritten mechanically. See manual_flags.
+    private final RestTemplate restTemplate;
 
-    @Autowired
-    private ConfigService configService;
+    private final ConfigService configService;
 
-    @Autowired
-    private RestLogger restLogger;
+    private final RestLogger restLogger;
 
     /**
      * Used when no endpoint is configured, if one has been supplied.
@@ -47,9 +48,21 @@ public class RestServiceImpl implements RestService {
      * <p>Optional on purpose: production configures a URL and never has one of these. The wiring
      * that decides whether to provide it is in the web module, because that is where the profile
      * is known - see {@code RestConfig}.</p>
+     *
+     * <p>Kept as an optional field with {@code required = false} rather than moved to the
+     * constructor: Spring 6 tightened optional/nullable resolution, and promoting this to a
+     * constructor parameter would make it a hard dependency and fail fast at startup in the
+     * production profile where no fallback bean exists.</p>
      */
     @Autowired(required = false)
     private RestService addressValidationFallback;
+
+    public RestServiceImpl(final RestTemplate restTemplate, final ConfigService configService,
+            final RestLogger restLogger) {
+        this.restTemplate = restTemplate;
+        this.configService = configService;
+        this.restLogger = restLogger;
+    }
 
     @Override
     public AddressValidationResponse postAddressValidation(final Address address,
@@ -107,18 +120,6 @@ public class RestServiceImpl implements RestService {
         response.setRequestId(requestId);
         response.setError(error);
         return response;
-    }
-
-    public void setRestTemplate(final RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
-    }
-
-    public void setConfigService(final ConfigService configService) {
-        this.configService = configService;
-    }
-
-    public void setRestLogger(final RestLogger restLogger) {
-        this.restLogger = restLogger;
     }
 
     public void setAddressValidationFallback(final RestService addressValidationFallback) {

@@ -9,7 +9,6 @@ import org.example.am.shared.domain.Contact;
 import org.example.am.shared.domain.ContactType;
 import org.example.am.shared.domain.Customer;
 import org.example.am.shared.service.CustomerService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,11 +17,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
 public class CustomerServiceImpl implements CustomerService {
 
-    @Autowired
-    private CustomerDAO customerDAO;
+    private final CustomerDAO customerDAO;
 
-    @Autowired
-    private ContactDAO contactDAO;
+    private final ContactDAO contactDAO;
+
+    // Single constructor: @Autowired is redundant on Spring 6 and has been removed.
+    public CustomerServiceImpl(final CustomerDAO customerDAO, final ContactDAO contactDAO) {
+        this.customerDAO = customerDAO;
+        this.contactDAO = contactDAO;
+    }
 
     @Override
     public Customer getCustomer(final long customerId) {

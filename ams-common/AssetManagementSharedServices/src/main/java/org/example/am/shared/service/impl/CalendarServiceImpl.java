@@ -11,7 +11,6 @@ import org.example.am.shared.domain.FacilitationCallType;
 import org.example.am.shared.domain.Timeslot;
 import org.example.am.shared.service.CalendarService;
 import org.example.am.shared.utils.ConversionUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,8 +26,11 @@ public class CalendarServiceImpl implements CalendarService {
      */
     private static final int HOLIDAY_WINDOW_SLACK_DAYS = 21;
 
-    @Autowired
-    private CalendarDAO calendarDAO;
+    private final CalendarDAO calendarDAO;
+
+    public CalendarServiceImpl(final CalendarDAO calendarDAO) {
+        this.calendarDAO = calendarDAO;
+    }
 
     @Override
     public Date addBusinessDays(final Date from, final int businessDays) {
@@ -132,9 +134,5 @@ public class CalendarServiceImpl implements CalendarService {
             }
         }
         return keys;
-    }
-
-    public void setCalendarDAO(final CalendarDAO calendarDAO) {
-        this.calendarDAO = calendarDAO;
     }
 }

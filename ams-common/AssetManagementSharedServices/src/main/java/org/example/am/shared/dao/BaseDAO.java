@@ -24,8 +24,10 @@ public abstract class BaseDAO {
     private DataSource dataSource;
 
     /**
-     * Setter injection rather than constructor injection, because the legacy DAOs are also
-     * instantiated directly in a handful of unit tests.
+     * Setter injection rather than constructor injection, retained deliberately: this class is
+     * abstract and its subclasses live in other units. Adding a constructor argument here would
+     * force every subclass to forward it via super(...), which this migration cannot do. It also
+     * lets the legacy DAO unit tests instantiate DAOs directly. (Rule 4)
      */
     @Autowired
     public void setDataSource(final DataSource dataSource) {

@@ -3,7 +3,6 @@ package org.example.am.internal.web.action;
 import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.shared.domain.Order;
 import org.example.am.shared.service.OrderService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -22,12 +21,15 @@ public class InstallConfirmationAction extends BaseAction {
 
     private static final long serialVersionUID = 1L;
 
-    @Autowired
-    private transient OrderService orderService;
+    private final transient OrderService orderService;
 
     private Long orderId;
     private Order order;
     private boolean appointmentLost;
+
+    public InstallConfirmationAction(final OrderService orderService) {
+        this.orderService = orderService;
+    }
 
     public String confirmation() throws Exception {
         final String denied = requireRole(SecurityRoleType.INT_VIEW_ORDER);

@@ -46,10 +46,8 @@ public class AddressValidationInterceptor extends AbstractInterceptor {
 
     private static final Logger LOGGER = LogManager.getLogger(AddressValidationInterceptor.class);
 
-    @Autowired
     private transient RestService restService;
 
-    @Autowired
     private transient ConfigService configService;
 
     @Override
@@ -142,10 +140,12 @@ public class AddressValidationInterceptor extends AbstractInterceptor {
         return suggestion;
     }
 
+    @Autowired
     public void setRestService(final RestService restService) {
         this.restService = restService;
     }
 
+    @Autowired
     public void setConfigService(final ConfigService configService) {
         this.configService = configService;
     }

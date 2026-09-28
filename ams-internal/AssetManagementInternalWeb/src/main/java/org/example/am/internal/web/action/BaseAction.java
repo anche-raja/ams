@@ -47,6 +47,10 @@ public abstract class BaseAction extends ActionSupport
     private transient HttpServletRequest servletRequest;
     private transient HttpServletResponse servletResponse;
 
+    // Field injection is retained deliberately: this is an abstract base class that subclasses
+    // extend and call super() on. Converting to constructor injection would force every subclass
+    // in other units to forward the dependency through their own super(...) call, which this file
+    // cannot make happen. Rule 4 requires the no-arg constructor and field/setter injection here.
     @Autowired
     private transient ConfigService configService;
 

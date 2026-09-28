@@ -2,7 +2,6 @@ package org.example.am.internal.web.config;
 
 import org.example.am.internal.service.AmsUserDetailsService;
 import org.example.am.internal.web.security.WebSealPreAuthenticatedAuthenticationProvider;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -24,8 +23,11 @@ import org.springframework.security.config.annotation.method.configuration.Globa
 @EnableGlobalMethodSecurity(prePostEnabled = true, jsr250Enabled = true, securedEnabled = true)
 public class GlobalSecurityConfig extends GlobalMethodSecurityConfiguration {
 
-    @Autowired
-    private AmsUserDetailsService amsUserDetailsService;
+    private final AmsUserDetailsService amsUserDetailsService;
+
+    public GlobalSecurityConfig(final AmsUserDetailsService amsUserDetailsService) {
+        this.amsUserDetailsService = amsUserDetailsService;
+    }
 
     @Bean
     public WebSealPreAuthenticatedAuthenticationProvider webSealAuthenticationProvider() {

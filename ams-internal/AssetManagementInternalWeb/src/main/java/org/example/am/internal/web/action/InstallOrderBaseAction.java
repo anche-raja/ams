@@ -30,6 +30,9 @@ public abstract class InstallOrderBaseAction extends BaseAction {
     public static final String RESULT_BACK_TO_SITE = "backToSite";
     public static final String RESULT_BACK_TO_DEVICE = "backToDevice";
 
+    // Field injection retained deliberately: this is an abstract *BaseAction extended by other
+    // units. Adding a constructor argument here would break every subclass's super() call, which
+    // this migration unit cannot amend. See Rule 4.
     @Autowired
     private transient CustomerService customerService;
 

@@ -48,6 +48,8 @@ public class ServletConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(final ResourceHandlerRegistry registry) {
+        // Trailing '**' is the only legal position for it under PathPattern, so this mapping is
+        // still valid as written.
         registry.addResourceHandler("/resources/**")
                 .addResourceLocations("/resources/")
                 .setCachePeriod(Integer.valueOf(STATIC_RESOURCE_CACHE_SECONDS));
@@ -66,27 +68,46 @@ public class ServletConfig implements WebMvcConfigurer {
      * <p>The URLs this application has always exposed end in {@code .action}, and the AJAX
      * endpoints are distinguished by suffix rather than by an {@code Accept} header, which is what
      * the vendored Dojo build sends.</p>
+     *
+     * <p>TODO(migration): {@code favorPathExtension(true)} and {@code useRegisteredExtensionsOnly}
+     * were REMOVED in Spring 6 - path-extension content negotiation no longer exists. The
+     * suffix-driven ({@code .action}, {@code json}/{@code html} by extension) negotiation this
+     * method relied on cannot be reconstructed mechanically. The original configuration is
+     * preserved below in comment form only; the live configuration falls back to Accept-header
+     * negotiation with a TEXT_HTML default so the two error views still resolve. Reproducing the
+     * old suffix behaviour requires an explicit design decision (see manual_flags).</p>
      */
     @Override
     public void configureContentNegotiation(final ContentNegotiationConfigurer configurer) {
-        configurer.favorPathExtension(true)
-                .ignoreAcceptHeader(false)
-                .useRegisteredExtensionsOnly(false)
+        // Original (Spring 5) configuration, no longer compilable in Spring 6:
+        //   configurer.favorPathExtension(true)
+        //             .ignoreAcceptHeader(false)
+        //             .useRegisteredExtensionsOnly(false)
+        //             .defaultContentType(MediaType.TEXT_HTML)
+        //             .mediaType("html", MediaType.TEXT_HTML)
+        //             .mediaType("json", MediaType.APPLICATION_JSON);
+        configurer.ignoreAcceptHeader(false)
                 .defaultContentType(org.springframework.http.MediaType.TEXT_HTML)
                 .mediaType("html", org.springframework.http.MediaType.TEXT_HTML)
                 .mediaType("json", org.springframework.http.MediaType.APPLICATION_JSON);
     }
 
     /**
-     * Keeps the legacy {@code AntPathMatcher} URL matching.
+     * Path matching configuration.
      *
-     * <p>Spring 5.3 switched the default to {@code PathPatternParser}, which does not do
-     * suffix pattern matching. Every mapping in this application predates that change, so the
-     * parser is explicitly cleared to fall back to the old matcher. Remove this only together with
-     * the {@code .action} suffixes themselves.</p>
+     * <p>TODO(migration): the previous implementation called {@code configurer.setPatternParser(null)}
+     * to force the legacy {@code AntPathMatcher} and keep suffix pattern matching alive. In Spring 6
+     * {@code PathPatternParser} is the default and the escape hatch back to {@code AntPathMatcher}
+     * no longer restores suffix pattern matching - suffix pattern matching was removed outright.
+     * Clearing the parser here therefore no longer achieves what the comment described, so the call
+     * has been removed rather than left as a misleading no-op. Trailing-slash matching is also off
+     * by default in 6 (see manual_flags). This override is retained empty as a marker; the mappings
+     * that depended on {@code .action} suffix behaviour must be reviewed at their declaration
+     * sites.</p>
      */
     @Override
     public void configurePathMatch(final PathMatchConfigurer configurer) {
-        configurer.setPatternParser(null);
+        // Intentionally empty. Original (Spring 5) call, invalid intent under Spring 6:
+        //   configurer.setPatternParser(null);
     }
 }

@@ -30,12 +30,16 @@ public class ErrorController {
      * Where Spring Security sends a user whose session was taken over by a newer login, or which
      * simply timed out.
      */
+    // Spring 6: trailing-slash matching is off by default; "/invalidSessionError/" no longer
+    // matches. If any Spring Security config or client hits it with a trailing slash, add the
+    // explicit variant. Method left as GET as before.
     @RequestMapping(value = "/invalidSessionError", method = RequestMethod.GET)
     public String invalidSession() {
         LOGGER.debug("Rendering the expired session page");
         return VIEW_INVALID_SESSION;
     }
 
+    // Spring 6: trailing-slash matching is off by default; "/error/" no longer matches "/error".
     @RequestMapping(value = "/error", method = RequestMethod.GET)
     public String error() {
         return VIEW_CUSTOM_ERROR;

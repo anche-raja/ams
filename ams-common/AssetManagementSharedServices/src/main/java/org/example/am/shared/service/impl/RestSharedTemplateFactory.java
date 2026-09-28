@@ -33,6 +33,9 @@ public class RestSharedTemplateFactory {
 
     public RestTemplate createRestTemplate() {
         final SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        // TODO(migration): SimpleClientHttpRequestFactory.setConnectTimeout(int)/setReadTimeout(int)
+        // are deprecated in Spring 6 in favour of the Duration overloads. Still compile; left as-is
+        // to avoid altering behaviour during the framework upgrade.
         requestFactory.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
         requestFactory.setReadTimeout(READ_TIMEOUT_MILLIS);
 

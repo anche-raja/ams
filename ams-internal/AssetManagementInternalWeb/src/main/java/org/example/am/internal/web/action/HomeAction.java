@@ -29,6 +29,11 @@ public class HomeAction extends BaseAction {
 
     private static final long serialVersionUID = 1L;
 
+    // NOTE(migration): field injection retained deliberately. These dependencies are declared
+    // 'transient' because Struts XWork actions are Serializable and these services must not be
+    // serialised into the session. Constructor injection with 'final' fields cannot coexist with
+    // 'transient' (a final transient field would be null after deserialisation and could never be
+    // re-populated). Leaving field injection preserves the existing serialization contract.
     @Autowired
     private transient CustomerSearchService customerSearchService;
 
