@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context>
+  <Resource name="jdbc/amsInternalDS" auth="Container" type="javax.sql.DataSource"
+            driverClassName="org.h2.Driver" url="${ams.datasource.url}"
+            username="${ams.datasource.user}" password="${ams.datasource.password}"
+            maxTotal="10" minIdle="5" maxWaitMillis="30000"
+            defaultTransactionIsolation="READ_COMMITTED"/>
+</Context>
