@@ -24,8 +24,10 @@
 #     AMS_DATASOURCE_URL variable exported from bin/setenv.sh.
 #   - the H2 driver that pool loads                      -> instance lib/, copied from ~/.m2
 #   - the JVM options (Spring profile, timezone, log dir) -> bin/setenv.sh
-# plus an HTTPS connector with a self-signed certificate: web.xml marks the session cookie Secure,
-# so a browser only returns it over TLS. Use the https URL for the UI; http serves /health.
+# plus an HTTPS connector: web.xml marks the session cookie Secure, so a browser only returns it over
+# TLS. Use the https URL for the UI; http serves /health. The certificate comes from mkcert's local
+# CA when mkcert is installed (brew install mkcert && mkcert -install, once: the Mac then trusts that
+# CA and Chrome and Safari show the padlock) and is self-signed otherwise, which works but is flagged.
 #
 # Tomcat is downloaded from dlcdn.apache.org into ~/tools/dl and its SHA-512 checked. Everything
 # under ~/tools is rebuilt from that archive and the Maven repository; hand edits to server.xml,
@@ -106,6 +108,41 @@ install_home() {
   [ -f "$CATALINA_HOME/bin/catalina.sh" ] || { echo "!! extraction did not produce $CATALINA_HOME"; exit 1; }
 }
 
+# ---------------------------------------------------------------- certificate
+# Issued by mkcert's local CA when mkcert is installed - the macOS keychain trusts that CA after a
+# one-time `mkcert -install`, so Chrome and Safari show the padlock - and self-signed otherwise.
+# conf/keystore.issuer records which, so installing mkcert later replaces a self-signed keystore on
+# the next run. Either way the result is one PKCS12 key entry under the script's password, which is
+# all server.xml needs to know; mkcert's own PKCS12 password is fixed, hence the re-keying.
+make_keystore() {
+  local ks="$CATALINA_BASE/conf/keystore.p12" marker="$CATALINA_BASE/conf/keystore.issuer" want=self-signed
+  command -v mkcert >/dev/null 2>&1 && want=mkcert
+  if [ -f "$ks" ] && [ "$(cat "$marker" 2>/dev/null)" = "$want" ]; then return; fi
+  rm -f "$ks"
+  if [ "$want" = mkcert ]; then
+    echo "==> issuing a certificate for localhost from the mkcert local CA"
+    local tmp; tmp="$(mktemp -d)"
+    mkcert -pkcs12 -p12-file "$tmp/mkcert.p12" localhost 127.0.0.1 ::1 >/dev/null 2>&1
+    # -destkeypass as well as -deststorepass: a JDK 8 keytool refuses to write a PKCS12 whose key
+    # and store passwords differ, and PKCS12 keeps them equal anyway.
+    "$JAVA_HOME/bin/keytool" -importkeystore -noprompt \
+      -srckeystore "$tmp/mkcert.p12" -srcstoretype PKCS12 -srcstorepass changeit \
+      -destkeystore "$ks" -deststoretype PKCS12 -deststorepass "$KEYSTORE_PASSWORD" \
+      -destkeypass "$KEYSTORE_PASSWORD" >/dev/null 2>&1
+    rm -rf "$tmp"
+    # Trust is the client's business, so this needs no restart once it is done.
+    security find-certificate -a /Library/Keychains/System.keychain 2>/dev/null | grep -q mkcert \
+      || echo "    the mkcert CA is not in the System keychain yet: run 'mkcert -install' once (admin password)"
+  else
+    echo "==> generating a self-signed certificate for localhost (browsers will warn;"
+    echo "    'brew install mkcert && mkcert -install', then './tomcat-mac.sh $JDK_NAME restart', makes it trusted)"
+    "$JAVA_HOME/bin/keytool" -genkeypair -alias ams-local -keyalg RSA -keysize 2048 -validity 825 \
+      -storetype PKCS12 -keystore "$ks" -storepass "$KEYSTORE_PASSWORD" \
+      -dname "CN=localhost, OU=AMS, O=Local development" -ext "SAN=dns:localhost,ip:127.0.0.1" >/dev/null
+  fi
+  echo "$want" > "$marker"
+}
+
 # The instance directory. Configuration is rewritten on every run so it always matches this script
 # and the Tomcat it runs on - the stock conf files are re-copied from CATALINA_HOME every time, so a
 # base that was last used with a different Tomcat version is brought up to date. data/, logs/,
@@ -132,13 +169,7 @@ install_base() {
   rm -f "$CATALINA_BASE"/lib/h2-*.jar
   cp "$h2jar" "$CATALINA_BASE/lib/"
 
-  # Self-signed certificate for the HTTPS connector, generated once per instance.
-  if [ ! -f "$CATALINA_BASE/conf/keystore.p12" ]; then
-    echo "==> generating a self-signed certificate for localhost"
-    "$JAVA_HOME/bin/keytool" -genkeypair -alias ams-local -keyalg RSA -keysize 2048 -validity 825 \
-      -storetype PKCS12 -keystore "$CATALINA_BASE/conf/keystore.p12" -storepass "$KEYSTORE_PASSWORD" \
-      -dname "CN=localhost, OU=AMS, O=Local development" -ext "SAN=dns:localhost,ip:127.0.0.1" >/dev/null
-  fi
+  make_keystore
 
   cat > "$CATALINA_BASE/conf/server.xml" <<XML
 <?xml version="1.0" encoding="UTF-8"?>

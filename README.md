@@ -175,8 +175,19 @@ same WAR runs on both instances, and both can be up at once:
 
 Substitute `jdk21` for the other instance. `start` and `deploy` return once `/health` answers. Use
 the **https** URL for the UI: `web.xml` marks the session cookie `Secure`, so a browser only returns
-it over TLS, and over plain HTTP every request would start a new session. The certificate is
-self-signed and generated per instance, so the browser warns once.
+it over TLS, and over plain HTTP every request would start a new session.
+
+**A certificate the browser trusts.** Install [mkcert](https://github.com/FiloSottile/mkcert) once:
+
+```bash
+brew install mkcert && mkcert -install   # one admin-password prompt: adds a local CA to the keychain
+./tomcat-mac.sh jdk8 restart             # and jdk21: reissues the instance certificate from that CA
+```
+
+The instances then serve certificates signed by a CA the Mac trusts, and Chrome and Safari show the
+padlock. Without mkcert the script falls back to a self-signed certificate, which works but is
+flagged "Not Secure". A site you previously clicked through in Chrome keeps that choice until you
+reset it from the padlock menu ("Turn on warnings"); that is cosmetic.
 
 Tomcat 9 rather than 10 or later: the application is Servlet 3.1 / JSP 2.3 on `javax.*`, and Tomcat
 10 moved to `jakarta.*`. The server supplies three things the WAR relies on, and each instance
