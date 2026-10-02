@@ -31,7 +31,7 @@ public class LanTypeCValidator extends LanValidator {
     @Override
     protected List<String> validateLanType(final String ipAddress, final String subnetMask,
             final String gateway) {
-        final List<String> messages = new ArrayList<>();
+        final List<String> messages = new ArrayList<String>();
         final int prefixLength = NetworkUtils.getPrefixLength(subnetMask);
         if (prefixLength != REQUIRED_PREFIX_LENGTH) {
             messages.add("LAN type C is a point to point handoff and requires a /"

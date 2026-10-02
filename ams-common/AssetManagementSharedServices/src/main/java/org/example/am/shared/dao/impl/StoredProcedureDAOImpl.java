@@ -5,6 +5,7 @@ import java.util.Date;
 import org.example.am.shared.dao.StoredProcedureDAO;
 import org.example.am.shared.dao.scheduling.EntityEmailDAO;
 import org.example.am.shared.dao.scheduling.TimeslotSchedulingDAO;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -22,15 +23,11 @@ import org.springframework.stereotype.Repository;
 @Repository("storedProcedureSharedDAO")
 public class StoredProcedureDAOImpl implements StoredProcedureDAO {
 
-    private final TimeslotSchedulingDAO timeslotSchedulingDAO;
+    @Autowired
+    private TimeslotSchedulingDAO timeslotSchedulingDAO;
 
-    private final EntityEmailDAO entityEmailDAO;
-
-    public StoredProcedureDAOImpl(final TimeslotSchedulingDAO timeslotSchedulingDAO,
-            final EntityEmailDAO entityEmailDAO) {
-        this.timeslotSchedulingDAO = timeslotSchedulingDAO;
-        this.entityEmailDAO = entityEmailDAO;
-    }
+    @Autowired
+    private EntityEmailDAO entityEmailDAO;
 
     @Override
     public String reserveTimeslot(final long timeslotId, final long entityId,

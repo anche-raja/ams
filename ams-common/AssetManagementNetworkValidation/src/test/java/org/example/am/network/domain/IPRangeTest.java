@@ -1,11 +1,10 @@
 package org.example.am.network.domain;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 public class IPRangeTest {
 
@@ -42,14 +41,14 @@ public class IPRangeTest {
         assertFalse(left.overlaps(new IPRange("10.0.0.101", "10.0.0.200")));
     }
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void anInvertedRangeIsRejected() {
-        assertThrows(IllegalArgumentException.class, () -> new IPRange("10.0.0.20", "10.0.0.10"));
+        new IPRange("10.0.0.20", "10.0.0.10");
     }
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void aMalformedCidrIsRejected() {
-        assertThrows(IllegalArgumentException.class, () -> IPRange.fromCidr("192.168.1.0/33", null));
+        IPRange.fromCidr("192.168.1.0/33", null);
     }
 
     @Test

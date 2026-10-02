@@ -2,13 +2,13 @@ package org.example.am.internal.web.filter;
 
 import java.io.IOException;
 
-import jakarta.servlet.Filter;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.FilterConfig;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,7 +37,8 @@ public class LoggingFilter implements Filter {
     public void doFilter(final ServletRequest request, final ServletResponse response,
             final FilterChain chain) throws IOException, ServletException {
         try {
-            if (request instanceof HttpServletRequest httpRequest) {
+            if (request instanceof HttpServletRequest) {
+                final HttpServletRequest httpRequest = (HttpServletRequest) request;
                 LoggingUtils.setUserId(httpRequest.getRemoteUser());
                 LoggingUtils.setActivityType(LoggingConstants.ACTIVITY_HTTP);
                 if (LOGGER.isDebugEnabled()) {

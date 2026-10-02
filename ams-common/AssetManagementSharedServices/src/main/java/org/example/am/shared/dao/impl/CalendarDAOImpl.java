@@ -59,15 +59,13 @@ public class CalendarDAOImpl extends BaseDAO implements CalendarDAO {
           + "   AND S.BLACKOUT_DT <= :endDate "
           + " ORDER BY S.BLACKOUT_DT ";
 
-    private static final RowMapper<Timeslot> TIMESLOT_MAPPER = CalendarDAOImpl::mapTimeslot;
-
-    /** Single column date projections, read positionally. */
-    private static final RowMapper<Date> DATE_MAPPER = CalendarDAOImpl::mapDate;
+    private static final RowMapper<Timeslot> TIMESLOT_MAPPER = new TimeslotMapper();
+    private static final RowMapper<Date> DATE_MAPPER = new DateMapper();
 
     @Override
     public List<Date> getHolidays(final Date from, final Date to) {
         if (from == null || to == null) {
-            return new ArrayList<>();
+            return new ArrayList<Date>();
         }
         return getNamedParameterJdbcTemplate().query(SELECT_HOLIDAYS,
                 ParameterRepository.create()
@@ -115,24 +113,32 @@ public class CalendarDAOImpl extends BaseDAO implements CalendarDAO {
                         .build(), DATE_MAPPER);
     }
 
-    private static Timeslot mapTimeslot(final ResultSet rs, final int rowNumber) throws SQLException {
-        final Timeslot timeslot = new Timeslot();
-        timeslot.setTimeslotId(ConversionUtils.getLong(rs, "TIMESLOT_ID"));
-        timeslot.setStartTime(ConversionUtils.getDate(rs, "START_TM"));
-        timeslot.setEndTime(ConversionUtils.getDate(rs, "END_TM"));
-        final Integer capacity = ConversionUtils.getInteger(rs, "CAPACITY");
-        timeslot.setCapacity(capacity == null ? 0 : capacity.intValue());
-        final Integer reserved = ConversionUtils.getInteger(rs, "RESERVED_COUNT");
-        timeslot.setReserved(reserved == null ? 0 : reserved.intValue());
-        timeslot.setAvailable(ConversionUtils.getBoolean(rs, "AVAILABLE_FL"));
-        timeslot.setDisplayLabel(ConversionUtils.getString(rs, "DISPLAY_LABEL"));
-        timeslot.setTimeZone(ConversionUtils.getString(rs, "TIME_ZONE"));
-        return timeslot;
+    private static class TimeslotMapper implements RowMapper<Timeslot> {
+
+        @Override
+        public Timeslot mapRow(final ResultSet rs, final int rowNumber) throws SQLException {
+            final Timeslot timeslot = new Timeslot();
+            timeslot.setTimeslotId(ConversionUtils.getLong(rs, "TIMESLOT_ID"));
+            timeslot.setStartTime(ConversionUtils.getDate(rs, "START_TM"));
+            timeslot.setEndTime(ConversionUtils.getDate(rs, "END_TM"));
+            final Integer capacity = ConversionUtils.getInteger(rs, "CAPACITY");
+            timeslot.setCapacity(capacity == null ? 0 : capacity.intValue());
+            final Integer reserved = ConversionUtils.getInteger(rs, "RESERVED_COUNT");
+            timeslot.setReserved(reserved == null ? 0 : reserved.intValue());
+            timeslot.setAvailable(ConversionUtils.getBoolean(rs, "AVAILABLE_FL"));
+            timeslot.setDisplayLabel(ConversionUtils.getString(rs, "DISPLAY_LABEL"));
+            timeslot.setTimeZone(ConversionUtils.getString(rs, "TIME_ZONE"));
+            return timeslot;
+        }
     }
 
     /** Single column date projections, read positionally. */
-    private static Date mapDate(final ResultSet rs, final int rowNumber) throws SQLException {
-        final java.sql.Timestamp value = rs.getTimestamp(1);
-        return value == null ? null : ConversionUtils.truncateToDay(new Date(value.getTime()));
+    private static class DateMapper implements RowMapper<Date> {
+
+        @Override
+        public Date mapRow(final ResultSet rs, final int rowNumber) throws SQLException {
+            final java.sql.Timestamp value = rs.getTimestamp(1);
+            return value == null ? null : ConversionUtils.truncateToDay(new Date(value.getTime()));
+        }
     }
 }

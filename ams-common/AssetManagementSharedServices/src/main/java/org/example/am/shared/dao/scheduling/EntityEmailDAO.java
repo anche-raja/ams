@@ -12,6 +12,7 @@ import org.example.am.shared.domain.PropertyType;
 import org.example.am.shared.helper.ParameterRepository;
 import org.example.am.shared.service.ConfigService;
 import org.example.am.shared.utils.CommonConstants;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -104,11 +105,8 @@ public class EntityEmailDAO extends BaseDAO {
                 + "  JOIN AMS_ASSETS A ON A.ASSET_ID = R.ASSET_ID WHERE R.RMA_ID = :entityId"},
     };
 
-    private final ConfigService configService;
-
-    public EntityEmailDAO(final ConfigService configService) {
-        this.configService = configService;
-    }
+    @Autowired
+    private ConfigService configService;
 
     /**
      * Queues one notification per eligible contact.

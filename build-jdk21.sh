@@ -1,20 +1,26 @@
 #!/usr/bin/env bash
-# Git Bash build pinned to JDK 21: builds the three AMS reactors in dependency order, installing
-# each to the local repository before the next one resolves against it.
+# Build pinned to JDK 21. The application is Java 8 (maven.compiler.source/target 1.8 in the parent
+# POM); a JDK 21 build activates the POM's jdk9plus profile and compiles with --release 8, so the WAR
+# it produces is the same Java 8 bytecode build-jdk8.sh produces. Builds the three AMS reactors in
+# dependency order, installing each to the local repository before the next one resolves against it.
 #
 #   ./build-jdk21.sh              clean install, all three reactors
 #   ./build-jdk21.sh test         run the tests only
 #   ./build-jdk21.sh package      package without installing
-#   ./build-jdk21.sh run          build, then run the application natively on Liberty
-#   ./build-jdk21.sh stop         stop a natively running server
+#   ./build-jdk21.sh run          build, then deploy to Tomcat 9 and start it (tomcat.sh jdk21 deploy)
+#   ./build-jdk21.sh stop         stop that Tomcat instance
 #
 # Anything after the goal is passed to Maven:  ./build-jdk21.sh install -DskipTests
 #
-# JDK 21 is the everyday build JDK: the parent POM gives the test JVM --add-opens for the pinned
-# Mockito 1.9.5, which only a modular JDK accepts. build-jdk8.sh compiles on the deployment JDK.
-#
-# Run tools\setup-env.ps1 first in a fresh session - it restores C:\tools after a WorkSpaces restart.
+# On macOS this is an alias for ./build.sh jdk21, which finds the JDK through /usr/libexec/java_home.
+# Everything below it is the Git Bash build for the Windows WorkSpaces machine, where the toolchain
+# lives in C:\tools. Run tools\setup-env.ps1 first in a fresh session there - it restores C:\tools
+# after a WorkSpaces restart.
 set -euo pipefail
+
+case "$(uname -s)" in
+  Darwin) exec "$(cd "$(dirname "$0")" && pwd)/build.sh" jdk21 "$@" ;;
+esac
 
 # Git Bash rewrites anything that looks like a POSIX path (/D, /c/...) when calling a Windows
 # program. Every path handed to subst and mvn.cmd below is already in Windows form, so turn it off.
@@ -64,31 +70,17 @@ build_reactors() {
   echo "==> all reactors built"
 }
 
-WEB_POM="$ROOT\\ams-internal\\AssetManagementInternalWeb\\pom.xml"
-
-# Embedded H2 is a file, and exactly one JVM may hold it. A server left behind by an earlier run
-# keeps the lock, and the next start fails with "Database may be already in use".
-stop_native() {
-  mvn -q -f "$WEB_POM" -P native liberty:stop >/dev/null 2>&1 || true
-  powershell.exe -NoProfile -Command \
-    "Get-CimInstance Win32_Process -Filter \"Name='java.exe'\" | Where-Object { \$_.CommandLine -match 'wlp.*amsInternal' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force }" \
-    >/dev/null 2>&1 || true
-}
-
 echo "JAVA_HOME = $JAVA_HOME"
 mvn -version | head -1
 echo
 
 case "$GOAL" in
   stop)
-    stop_native
-    echo "==> native server stopped"
+    exec "$HERE/tomcat.sh" jdk21 stop
     ;;
   run)
     build_reactors install "$@"
-    stop_native
-    echo "==> liberty:dev on http://localhost:9081/AssetManagementInternalWeb (Ctrl-C to stop)"
-    mvn -f "$WEB_POM" -P native liberty:dev
+    exec "$HERE/tomcat.sh" jdk21 deploy
     ;;
   *)
     build_reactors "$GOAL" "$@"

@@ -10,6 +10,7 @@ import org.example.am.shared.service.impl.RestSharedTemplateFactory;
 import org.example.am.shared.service.impl.StubRestService;
 import org.example.am.shared.utils.CommonConstants;
 import org.example.am.shared.utils.RestLogger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -29,11 +30,8 @@ public class RestConfig {
 
     private static final Logger LOGGER = LogManager.getLogger(RestConfig.class);
 
-    private final Environment environment;
-
-    public RestConfig(final Environment environment) {
-        this.environment = environment;
-    }
+    @Autowired
+    private Environment environment;
 
     /**
      * Supplies the canned address validation service for environments with no real one to call.

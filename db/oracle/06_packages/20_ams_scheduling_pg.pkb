@@ -13,11 +13,11 @@ CREATE OR REPLACE PACKAGE BODY AMS_SCHEDULING_PG AS
    * a brief overlap under normal load would be reported to the user as "that slot was just taken"
    * when it was not.
    *
-   * Five seconds rather than longer because Liberty's connectionTimeout="30s" bounds waiting for a
-   * connection from the pool, NOT waiting for a query. A session blocked on a row lock is holding
-   * its connection, so a long lock wait converts row contention into pool exhaustion across all
-   * 50 connections and unrelated requests start failing. There is no statement timeout configured
-   * anywhere, so this clause is the only bound that exists.
+   * Five seconds rather than longer because the connection pool's wait timeout (30 seconds) bounds
+   * waiting for a connection from the pool, NOT waiting for a query. A session blocked on a row
+   * lock is holding its connection, so a long lock wait converts row contention into pool
+   * exhaustion across all 50 connections and unrelated requests start failing. There is no
+   * statement timeout configured anywhere, so this clause is the only bound that exists.
    */
   C_LOCK_WAIT CONSTANT PLS_INTEGER := 5;
 

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The application's one container resource: the JDBC pool behind web.xml's resource-ref, which
+  DataSourceConfig looks up as java:comp/env/jdbc/amsInternalDS. Sizing and validation live here
+  rather than in the application so they can be changed without a rebuild of the Java.
+
+  Every connection value is read from the environment with a default, so a bare Tomcat starts on
+  embedded H2 with nothing exported, and a deployment points the same WAR at Oracle by exporting
+  four variables. Environment lookup needs org.apache.tomcat.util.digester.PROPERTY_SOURCE set to
+  EnvironmentPropertySource in catalina.properties; tomcat-mac.sh and the Dockerfile both do that
+  (the Windows tomcat.sh writes a per-instance descriptor instead, which wins over this file).
+  Without it, only -D system properties of the same names are consulted before the defaults.
+
+  The driver is loaded by Tomcat's pool from $CATALINA_BASE/lib, not from WEB-INF/lib: the pool
+  lives in the server's class loader, which cannot see the web application's.
+
+  A per-instance descriptor in conf/Catalina/localhost/AssetManagementInternalWeb.xml takes
+  precedence over this file if one exists.
+-->
+<Context>
+  <Resource name="jdbc/amsInternalDS"
+            auth="Container"
+            type="javax.sql.DataSource"
+            driverClassName="${AMS_DATASOURCE_DRIVER:-org.h2.Driver}"
+            url="${AMS_DATASOURCE_URL:-jdbc:h2:~/ams-internal/ams;MVCC=TRUE;LOCK_TIMEOUT=5000;DB_CLOSE_ON_EXIT=FALSE}"
+            username="${AMS_DATASOURCE_USER:-sa}"
+            password="${AMS_DATASOURCE_PASSWORD:-}"
+            maxTotal="10"
+            minIdle="5"
+            maxIdle="10"
+            maxWaitMillis="30000"
+            defaultTransactionIsolation="READ_COMMITTED"
+            validationQuery="SELECT 1 FROM DUAL"
+            testOnBorrow="true"/>
+</Context>

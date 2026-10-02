@@ -4,7 +4,7 @@ import org.example.am.shared.logging.LoggingConstants;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import org.apache.struts2.action.Action;
+import com.opensymphony.xwork2.Action;
 
 /**
  * The Struts side's global error page.

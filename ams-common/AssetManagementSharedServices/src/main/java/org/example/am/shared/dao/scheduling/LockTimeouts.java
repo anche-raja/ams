@@ -13,11 +13,11 @@ import org.springframework.dao.PessimisticLockingFailureException;
  * clause, so the five-second bound moves to the connection URL as {@code LOCK_TIMEOUT=5000} and
  * arrives here as a single error code.</p>
  *
- * <p>The bound matters and is not arbitrary. Liberty's {@code connectionTimeout} bounds how long a
- * caller waits for a connection from the <em>pool</em>, not how long a statement waits for a lock,
- * and a session blocked on a lock is still holding its connection. Without a statement-level bound,
- * row contention turns into pool exhaustion across every request. Five seconds keeps it an order of
- * magnitude clear.</p>
+ * <p>The bound matters and is not arbitrary. The connection pool's wait timeout ({@code maxWaitMillis}
+ * on the Tomcat data source) bounds how long a caller waits for a connection from the <em>pool</em>,
+ * not how long a statement waits for a lock, and a session blocked on a lock is still holding its
+ * connection. Without a statement-level bound, row contention turns into pool exhaustion across
+ * every request. Five seconds keeps it an order of magnitude clear.</p>
  */
 final class LockTimeouts {
 
@@ -40,8 +40,8 @@ final class LockTimeouts {
             return true;
         }
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-            if (cause instanceof SQLException sqlCause
-                    && sqlCause.getErrorCode() == H2_LOCK_TIMEOUT) {
+            if (cause instanceof SQLException
+                    && ((SQLException) cause).getErrorCode() == H2_LOCK_TIMEOUT) {
                 return true;
             }
             if (cause == cause.getCause()) {

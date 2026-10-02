@@ -12,6 +12,7 @@ import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.internal.security.WebSealPrincipal;
 import org.example.am.internal.service.AmsUserDetailsService;
 import org.example.am.internal.service.dao.AmsUserDetailsDAO;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -27,11 +28,8 @@ public class AmsUserDetailsServiceImpl implements AmsUserDetailsService {
 
     private static final Logger LOGGER = LogManager.getLogger(AmsUserDetailsServiceImpl.class);
 
+    @Autowired
     private AmsUserDetailsDAO amsUserDetailsDAO;
-
-    public AmsUserDetailsServiceImpl(final AmsUserDetailsDAO amsUserDetailsDAO) {
-        this.amsUserDetailsDAO = amsUserDetailsDAO;
-    }
 
     @Override
     public UserDetails loadUserDetails(final Authentication authentication) {
@@ -44,7 +42,7 @@ public class AmsUserDetailsServiceImpl implements AmsUserDetailsService {
         final List<SecurityRoleType> roles =
                 amsUserDetailsDAO.getRolesForLdapGroups(principal.getLdapGroups());
 
-        final Collection<GrantedAuthority> authorities = new ArrayList<>();
+        final Collection<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
         // Every authenticated caller gets ROLE_USER; the catch-all URL rule is written against it,
         // so a user whose groups map to nothing can still reach the unauthorised page rather than
         // being bounced by the entry point with no explanation.
@@ -80,8 +78,8 @@ public class AmsUserDetailsServiceImpl implements AmsUserDetailsService {
             return null;
         }
         final Object principal = authentication.getPrincipal();
-        if (principal instanceof WebSealPrincipal webSealPrincipal) {
-            return webSealPrincipal;
+        if (principal instanceof WebSealPrincipal) {
+            return (WebSealPrincipal) principal;
         }
         if (principal == null) {
             return null;

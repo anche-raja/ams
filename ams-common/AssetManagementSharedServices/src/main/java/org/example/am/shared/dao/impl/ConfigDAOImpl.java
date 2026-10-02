@@ -12,6 +12,7 @@ import org.example.am.shared.helper.ParameterRepository;
 import org.example.am.shared.utils.CommonConstants;
 import org.example.am.shared.utils.ConversionUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Repository;
 
 @Repository("configSharedDAO")
@@ -49,11 +50,16 @@ public class ConfigDAOImpl extends BaseDAO implements ConfigDAO {
 
     @Override
     public Map<String, String> getAllProperties() {
-        final Map<String, String> properties = new LinkedHashMap<>();
+        final Map<String, String> properties = new LinkedHashMap<String, String>();
         getNamedParameterJdbcTemplate().query(SELECT_ALL_PROPERTIES,
-                ParameterRepository.create().build(), (final ResultSet rs) -> properties.put(
-                        ConversionUtils.getString(rs, "PROPERTY_KEY"),
-                        ConversionUtils.getString(rs, "PROPERTY_VALUE")));
+                ParameterRepository.create().build(), new RowCallbackHandler() {
+
+                    @Override
+                    public void processRow(final ResultSet rs) throws SQLException {
+                        properties.put(ConversionUtils.getString(rs, "PROPERTY_KEY"),
+                                ConversionUtils.getString(rs, "PROPERTY_VALUE"));
+                    }
+                });
         return properties;
     }
 

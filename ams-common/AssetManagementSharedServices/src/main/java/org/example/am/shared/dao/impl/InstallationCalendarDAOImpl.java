@@ -33,23 +33,32 @@ public class InstallationCalendarDAOImpl extends BaseDAO implements Installation
     private static final String SELECT_REGION =
             "SELECT R.REGION_CD FROM AMS_INSTALL_REGIONS R WHERE R.ZIP_CODE = :zipCode ";
 
-    private static final RowMapper<Timeslot> INSTALL_SLOT_MAPPER = (final ResultSet rs, final int rowNumber) -> {
-        final Timeslot timeslot = new Timeslot();
-        timeslot.setTimeslotId(ConversionUtils.getLong(rs, "TIMESLOT_ID"));
-        timeslot.setStartTime(ConversionUtils.getDate(rs, "START_TM"));
-        timeslot.setEndTime(ConversionUtils.getDate(rs, "END_TM"));
-        final Integer capacity = ConversionUtils.getInteger(rs, "CAPACITY");
-        timeslot.setCapacity(capacity == null ? 0 : capacity.intValue());
-        final Integer reserved = ConversionUtils.getInteger(rs, "RESERVED_COUNT");
-        timeslot.setReserved(reserved == null ? 0 : reserved.intValue());
-        timeslot.setAvailable(ConversionUtils.getBoolean(rs, "AVAILABLE_FL"));
-        timeslot.setDisplayLabel(ConversionUtils.getString(rs, "DISPLAY_LABEL"));
-        timeslot.setTimeZone(ConversionUtils.getString(rs, "TIME_ZONE"));
-        return timeslot;
+    private static final RowMapper<Timeslot> INSTALL_SLOT_MAPPER = new RowMapper<Timeslot>() {
+
+        @Override
+        public Timeslot mapRow(final ResultSet rs, final int rowNumber) throws SQLException {
+            final Timeslot timeslot = new Timeslot();
+            timeslot.setTimeslotId(ConversionUtils.getLong(rs, "TIMESLOT_ID"));
+            timeslot.setStartTime(ConversionUtils.getDate(rs, "START_TM"));
+            timeslot.setEndTime(ConversionUtils.getDate(rs, "END_TM"));
+            final Integer capacity = ConversionUtils.getInteger(rs, "CAPACITY");
+            timeslot.setCapacity(capacity == null ? 0 : capacity.intValue());
+            final Integer reserved = ConversionUtils.getInteger(rs, "RESERVED_COUNT");
+            timeslot.setReserved(reserved == null ? 0 : reserved.intValue());
+            timeslot.setAvailable(ConversionUtils.getBoolean(rs, "AVAILABLE_FL"));
+            timeslot.setDisplayLabel(ConversionUtils.getString(rs, "DISPLAY_LABEL"));
+            timeslot.setTimeZone(ConversionUtils.getString(rs, "TIME_ZONE"));
+            return timeslot;
+        }
     };
 
-    private static final RowMapper<String> REGION_MAPPER =
-            (final ResultSet rs, final int rowNumber) -> ConversionUtils.getString(rs, "REGION_CD");
+    private static final RowMapper<String> REGION_MAPPER = new RowMapper<String>() {
+
+        @Override
+        public String mapRow(final ResultSet rs, final int rowNumber) throws SQLException {
+            return ConversionUtils.getString(rs, "REGION_CD");
+        }
+    };
 
     @Override
     public List<Timeslot> getInstallationSlots(final String regionCode, final Date from, final Date to) {

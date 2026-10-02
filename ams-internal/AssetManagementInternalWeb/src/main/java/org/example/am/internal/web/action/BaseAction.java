@@ -5,14 +5,14 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.struts2.action.ServletRequestAware;
-import org.apache.struts2.action.ServletResponseAware;
+import org.apache.struts2.interceptor.ServletRequestAware;
+import org.apache.struts2.interceptor.ServletResponseAware;
 import org.example.am.internal.security.AmsUser;
 import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.internal.utils.InternalConstants;
@@ -24,8 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import org.apache.struts2.ActionSupport;
-import org.apache.struts2.ModelDriven;
+import com.opensymphony.xwork2.ActionSupport;
+import com.opensymphony.xwork2.ModelDriven;
 
 /**
  * The common ground for every action in the application.
@@ -51,12 +51,12 @@ public abstract class BaseAction extends ActionSupport
     private transient ConfigService configService;
 
     @Override
-    public void withServletRequest(final HttpServletRequest servletRequest) {
+    public void setServletRequest(final HttpServletRequest servletRequest) {
         this.servletRequest = servletRequest;
     }
 
     @Override
-    public void withServletResponse(final HttpServletResponse servletResponse) {
+    public void setServletResponse(final HttpServletResponse servletResponse) {
         this.servletResponse = servletResponse;
     }
 
@@ -120,10 +120,10 @@ public abstract class BaseAction extends ActionSupport
     protected AmsUser getAmsUser() {
         final Authentication authentication =
                 SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof AmsUser user)) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof AmsUser)) {
             return null;
         }
-        return user;
+        return (AmsUser) authentication.getPrincipal();
     }
 
     protected String getUserId() {

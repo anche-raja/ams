@@ -1,36 +1,40 @@
 #!/usr/bin/env bash
-# Git Bash build pinned to JDK 8: builds the three AMS reactors in dependency order, installing
-# each to the local repository before the next one resolves against it.
+# Build pinned to JDK 8 - the JDK this application is built for and deploys onto
+# (maven.compiler.source/target 1.8 in the parent POM). Builds the three AMS reactors in dependency
+# order, installing each to the local repository before the next one resolves against it.
 #
 #   ./build-jdk8.sh              clean install, all three reactors
 #   ./build-jdk8.sh test         run the tests only
 #   ./build-jdk8.sh package      package without installing
-#   ./build-jdk8.sh run          build, then run the application natively on Liberty
-#   ./build-jdk8.sh stop         stop a natively running server
+#   ./build-jdk8.sh run          build, then deploy to Tomcat 9 and start it (tomcat.sh jdk8 deploy)
+#   ./build-jdk8.sh stop         stop that Tomcat instance
 #
 # Anything after the goal is passed to Maven:  ./build-jdk8.sh install -DskipTests
 #
-# JDK 8 is what the application deploys onto, so this compiles, packages and runs Liberty on the
-# same JDK as production. The tests are the exception: the parent POM hardcodes --add-opens into
-# the Surefire argLine for the pinned Mockito 1.9.5, and Java 8 refuses to start with that flag.
-# Surefire is pointed at JDK 21's java for the forked test JVM instead - the code under test is
-# still the Java 8 bytecode compiled here.
+# The tests run on JDK 8 too. They used to be forked onto JDK 21 because the parent POM hardcoded
+# --add-opens for the pinned Mockito and a Java 8 JVM refuses that flag; the flag now lives in a
+# profile that only a JDK 9+ build activates, so nothing here needs a second JDK.
 #
-# Run tools\setup-env.ps1 first in a fresh session - it restores C:\tools after a WorkSpaces restart.
+# On macOS this is an alias for ./build.sh jdk8, which finds the JDK through /usr/libexec/java_home.
+# Everything below it is the Git Bash build for the Windows WorkSpaces machine, where the toolchain
+# lives in C:\tools. Run tools\setup-env.ps1 first in a fresh session there - it restores C:\tools
+# after a WorkSpaces restart.
 set -euo pipefail
+
+case "$(uname -s)" in
+  Darwin) exec "$(cd "$(dirname "$0")" && pwd)/build.sh" jdk8 "$@" ;;
+esac
 
 # Git Bash rewrites anything that looks like a POSIX path (/D, /c/...) when calling a Windows
 # program. Every path handed to subst and mvn.cmd below is already in Windows form, so turn it off.
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
 
 JDK='C:\tools\jdk8'
-TEST_JDK='C:\tools\jdk21'
 TOOLS='C:\tools'
 MVN="$(cygpath -u "$TOOLS")/maven/bin/mvn.cmd"
 REPO_LOCAL="$TOOLS\\m2"
 
 [ -f "$(cygpath -u "$JDK")/bin/javac.exe" ] || { echo "!! no JDK at $JDK - run tools\\setup-env.ps1 first"; exit 1; }
-[ -f "$(cygpath -u "$TEST_JDK")/bin/java.exe" ] || { echo "!! no JDK at $TEST_JDK for the tests - run tools\\setup-env.ps1 first"; exit 1; }
 [ -f "$MVN" ] || { echo "!! no Maven at $TOOLS\\maven - run tools\\setup-env.ps1 first"; exit 1; }
 
 export JAVA_HOME="$JDK"
@@ -58,7 +62,7 @@ if [ "${MAPPED,,}" != "${HERE_WIN,,}" ]; then
   echo "mapped $ROOT -> $HERE_WIN"
 fi
 
-mvn() { "$MVN" -B "-Dmaven.repo.local=$REPO_LOCAL" "-Djvm=$TEST_JDK\\bin\\java.exe" "$@"; }
+mvn() { "$MVN" -B "-Dmaven.repo.local=$REPO_LOCAL" "$@"; }
 
 build_reactors() {
   local goal="$1"; shift
@@ -69,31 +73,17 @@ build_reactors() {
   echo "==> all reactors built"
 }
 
-WEB_POM="$ROOT\\ams-internal\\AssetManagementInternalWeb\\pom.xml"
-
-# Embedded H2 is a file, and exactly one JVM may hold it. A server left behind by an earlier run
-# keeps the lock, and the next start fails with "Database may be already in use".
-stop_native() {
-  mvn -q -f "$WEB_POM" -P native liberty:stop >/dev/null 2>&1 || true
-  powershell.exe -NoProfile -Command \
-    "Get-CimInstance Win32_Process -Filter \"Name='java.exe'\" | Where-Object { \$_.CommandLine -match 'wlp.*amsInternal' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force }" \
-    >/dev/null 2>&1 || true
-}
-
-echo "JAVA_HOME = $JAVA_HOME  (tests fork on $TEST_JDK)"
+echo "JAVA_HOME = $JAVA_HOME"
 mvn -version | head -1
 echo
 
 case "$GOAL" in
   stop)
-    stop_native
-    echo "==> native server stopped"
+    exec "$HERE/tomcat.sh" jdk8 stop
     ;;
   run)
     build_reactors install "$@"
-    stop_native
-    echo "==> liberty:dev on http://localhost:9081/AssetManagementInternalWeb (Ctrl-C to stop)"
-    mvn -f "$WEB_POM" -P native liberty:dev
+    exec "$HERE/tomcat.sh" jdk8 deploy
     ;;
   *)
     build_reactors "$GOAL" "$@"

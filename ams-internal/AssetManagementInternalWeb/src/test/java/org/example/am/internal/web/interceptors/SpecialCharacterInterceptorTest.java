@@ -1,11 +1,11 @@
 package org.example.am.internal.web.interceptors;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.example.am.internal.web.security.SpecialCharacterException;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -15,7 +15,7 @@ public class SpecialCharacterInterceptorTest {
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
 
-    @BeforeEach
+    @Before
     public void setUp() {
         interceptor = new SpecialCharacterInterceptor();
         request = new MockHttpServletRequest();
@@ -79,19 +79,21 @@ public class SpecialCharacterInterceptorTest {
     @Test
     public void theRejectedValueIsNotCarriedOnTheException() {
         request.addParameter("searchTerm", "<script>alert(1)</script>");
-        final SpecialCharacterException rejected = assertThrows(
-                SpecialCharacterException.class,
-                () -> interceptor.preHandle(request, response, null),
-                "Expected the request to be rejected");
-        assertTrue(!rejected.getMessage().contains("script"));
-        assertTrue(rejected.getMessage().contains("searchTerm"));
+        try {
+            interceptor.preHandle(request, response, null);
+            fail("Expected the request to be rejected");
+        } catch (final SpecialCharacterException rejected) {
+            assertTrue(!rejected.getMessage().contains("script"));
+            assertTrue(rejected.getMessage().contains("searchTerm"));
+        }
     }
 
     private void expectRejection(final String parameterName) {
-        final SpecialCharacterException rejected = assertThrows(
-                SpecialCharacterException.class,
-                () -> interceptor.preHandle(request, response, null),
-                "Expected " + parameterName + " to be rejected");
-        assertTrue(rejected.getParameterName().equals(parameterName));
+        try {
+            interceptor.preHandle(request, response, null);
+            fail("Expected " + parameterName + " to be rejected");
+        } catch (final SpecialCharacterException rejected) {
+            assertTrue(rejected.getParameterName().equals(parameterName));
+        }
     }
 }

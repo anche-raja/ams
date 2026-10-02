@@ -3,7 +3,7 @@ package org.example.am.internal.web.security;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,7 +28,7 @@ public class DevWebSealRequestHeaderAuthenticationFilter
             LogManager.getLogger(DevWebSealRequestHeaderAuthenticationFilter.class);
 
     private String developerUsername = "devuser";
-    private List<String> developerGroups = new ArrayList<>();
+    private List<String> developerGroups = new ArrayList<String>();
 
     @Override
     protected Object getPreAuthenticatedPrincipal(final HttpServletRequest request) {
@@ -54,6 +54,6 @@ public class DevWebSealRequestHeaderAuthenticationFilter
 
     public void setDeveloperGroups(final List<String> developerGroups) {
         this.developerGroups = developerGroups == null
-                ? new ArrayList<>() : new ArrayList<>(developerGroups);
+                ? new ArrayList<String>() : new ArrayList<String>(developerGroups);
     }
 }

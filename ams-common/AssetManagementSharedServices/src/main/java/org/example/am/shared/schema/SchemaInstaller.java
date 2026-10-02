@@ -25,9 +25,8 @@ import org.springframework.jdbc.datasource.init.ScriptUtils;
  * <p>This replaces what {@code db/oracle/00_init.sh} did inside the Oracle container. The scripts
  * live in {@code src/main/resources/db} of this module rather than in a directory at the repository
  * root, so they reach both Surefire and the running server over the ordinary compile dependency and
- * travel inside {@code WEB-INF/lib} in the WAR. Nothing has to resolve a filesystem path, which is
- * the same problem that made the Liberty {@code server.xml} depend on an absolute container
- * directory.</p>
+ * travel inside {@code WEB-INF/lib} in the WAR. Nothing has to resolve a filesystem path, so the
+ * installer behaves identically under Surefire, on a developer's Tomcat and in the container.</p>
  *
  * <p>Idempotency is not optional here. The Oracle container only ever ran its scripts on a fresh
  * volume, but an embedded database is a file that persists between restarts, so this runs against
@@ -131,7 +130,7 @@ public class SchemaInstaller {
         final Resource[] scripts = resolver.getResources(location);
         // getResources makes no ordering promise, and these scripts are numbered because the order
         // is load-bearing.
-        final List<Resource> ordered = new ArrayList<>(Arrays.asList(scripts));
+        final List<Resource> ordered = new ArrayList<Resource>(Arrays.asList(scripts));
         ordered.sort(Comparator.comparing(resource -> String.valueOf(resource.getFilename())));
 
         if (ordered.isEmpty()) {

@@ -16,11 +16,11 @@ import org.example.am.shared.service.ConfigService;
 import org.example.am.shared.service.RestService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.apache.struts2.action.Action;
-import org.apache.struts2.ActionInvocation;
-import org.apache.struts2.ModelDriven;
-import org.apache.struts2.interceptor.AbstractInterceptor;
-import org.apache.struts2.interceptor.PreResultListener;
+import com.opensymphony.xwork2.Action;
+import com.opensymphony.xwork2.ActionInvocation;
+import com.opensymphony.xwork2.ModelDriven;
+import com.opensymphony.xwork2.interceptor.AbstractInterceptor;
+import com.opensymphony.xwork2.interceptor.PreResultListener;
 
 /**
  * Validates the site address as the install order's first step is saved.
@@ -54,10 +54,14 @@ public class AddressValidationInterceptor extends AbstractInterceptor {
 
     @Override
     public String intercept(final ActionInvocation invocation) throws Exception {
-        invocation.addPreResultListener((inv, resultCode) -> {
-            final String replacement = validate(inv, resultCode);
-            if (replacement != null) {
-                inv.setResultCode(replacement);
+        invocation.addPreResultListener(new PreResultListener() {
+
+            @Override
+            public void beforeResult(final ActionInvocation inv, final String resultCode) {
+                final String replacement = validate(inv, resultCode);
+                if (replacement != null) {
+                    inv.setResultCode(replacement);
+                }
             }
         });
         return invocation.invoke();
@@ -117,7 +121,7 @@ public class AddressValidationInterceptor extends AbstractInterceptor {
             return null;
         }
         final Object model = ((ModelDriven<Object>) action).getModel();
-        return model instanceof InstallOrderModel installOrderModel ? installOrderModel : null;
+        return model instanceof InstallOrderModel ? (InstallOrderModel) model : null;
     }
 
     /**

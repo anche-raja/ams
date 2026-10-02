@@ -16,10 +16,11 @@ import org.example.am.shared.domain.Order;
 import org.example.am.shared.domain.Timeslot;
 import org.example.am.shared.service.InstallationCalendarService;
 import org.example.am.shared.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import org.apache.struts2.action.Action;
+import com.opensymphony.xwork2.Action;
 
 /**
  * Step 3, the last one: the installation appointment, and the button that places the order.
@@ -46,9 +47,11 @@ public class InstallAppointmentAction extends InstallOrderBaseAction {
 
     private static final int MAX_COMMENTS_LENGTH = 2000;
 
-    private final transient InstallationCalendarService installationCalendarService;
+    @Autowired
+    private transient InstallationCalendarService installationCalendarService;
 
-    private final transient OrderService orderService;
+    @Autowired
+    private transient OrderService orderService;
 
     private String region;
     private Date earliestDate;
@@ -57,12 +60,6 @@ public class InstallAppointmentAction extends InstallOrderBaseAction {
     /** Set once the order has been placed, for the redirect to the confirmation. */
     private Long placedOrderId;
     private boolean appointmentLost;
-
-    public InstallAppointmentAction(final InstallationCalendarService installationCalendarService,
-            final OrderService orderService) {
-        this.installationCalendarService = installationCalendarService;
-        this.orderService = orderService;
-    }
 
     public String initAppointment() throws Exception {
         final InstallOrderModel model = getModel();

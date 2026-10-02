@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE struts PUBLIC
-    "-//Apache Software Foundation//DTD Struts Configuration 6.5//EN"
-    "https://struts.apache.org/dtds/struts-6.5.dtd">
+    "-//Apache Software Foundation//DTD Struts Configuration 6.0//EN"
+    "https://struts.apache.org/dtds/struts-6.0.dtd">
 <struts>
 
   <!--
@@ -13,30 +13,9 @@
   <constant name="struts.devMode" value="false"/>
   <constant name="struts.i18n.encoding" value="UTF-8"/>
 
-  <!--
-    Routing defaults changed in Struts 7. These two constants pin the pre-7 behaviour so the same
-    URLs continue to resolve during this version upgrade.
-    TODO(migration): Struts 7 defaults are alwaysSelectFullNamespace=true and
-    fallbackToEmptyNamespace=false. Adopt them deliberately once routing has been re-verified.
-  -->
-  <constant name="struts.mapper.alwaysSelectFullNamespace" value="false"/>
-  <constant name="struts.actionConfig.fallbackToEmptyNamespace" value="true"/>
-
   <!-- Action beans come from the Spring root context, so they can be autowired. -->
   <constant name="struts.objectFactory" value="spring"/>
   <constant name="struts.objectFactory.spring.autoWire" value="name"/>
-
-  <!--
-    OGNL allowlist. Struts 7 blocks OGNL access to proxied objects (Spring/Hibernate) and
-    restricts which classes OGNL may reach. The application's model/action packages are added so
-    OGNL can still traverse them.
-    TODO(migration): confirm every Spring-managed action that is proxied (@Transactional,
-    @Secured, @PreAuthorize, @Async, @Cacheable or a custom AOP aspect) still renders its JSP and
-    still binds parameters; add its package below if a page renders blank.
-  -->
-  <constant name="struts.allowlist.enable" value="true"/>
-  <constant name="struts.allowlist.packageNames"
-            value="org.example.am.internal.web,org.example.am.internal.web.interceptors"/>
 
   <!--
     Both extensions are recognised. The empty one is what lets /health answer without a suffix,

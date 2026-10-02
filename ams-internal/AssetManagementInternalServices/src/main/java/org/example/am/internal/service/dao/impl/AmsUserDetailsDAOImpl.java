@@ -35,25 +35,40 @@ public class AmsUserDetailsDAOImpl extends BaseDAO implements AmsUserDetailsDAO 
     private static final String SELECT_USER_EMAIL =
             "SELECT U.EMAIL_ADDRESS FROM AMS_USERS U WHERE UPPER(U.USER_ID) = UPPER(:userId) ";
 
-    private static final RowMapper<String> ROLE_CODE_MAPPER =
-            (final ResultSet rs, final int rowNumber) -> ConversionUtils.getString(rs, "ROLE_CD");
+    private static final RowMapper<String> ROLE_CODE_MAPPER = new RowMapper<String>() {
 
-    private static final RowMapper<String> EMAIL_MAPPER =
-            (final ResultSet rs, final int rowNumber) -> ConversionUtils.getString(rs, "EMAIL_ADDRESS");
+        @Override
+        public String mapRow(final ResultSet rs, final int rowNumber) throws SQLException {
+            return ConversionUtils.getString(rs, "ROLE_CD");
+        }
+    };
+
+    private static final RowMapper<String> EMAIL_MAPPER = new RowMapper<String>() {
+
+        @Override
+        public String mapRow(final ResultSet rs, final int rowNumber) throws SQLException {
+            return ConversionUtils.getString(rs, "EMAIL_ADDRESS");
+        }
+    };
 
     private static final RowMapper<LdapGroupMapping> MAPPING_MAPPER =
-            (final ResultSet rs, final int rowNumber) -> {
-                final LdapGroupMapping mapping = new LdapGroupMapping();
-                mapping.setLdapGroupName(ConversionUtils.getString(rs, "LDAP_GROUP_NAME"));
-                mapping.setSecurityRole(
-                        SecurityRoleType.lookup(ConversionUtils.getString(rs, "ROLE_CD")));
-                mapping.setActive(ConversionUtils.getBoolean(rs, "ACTIVE_FL"));
-                return mapping;
+            new RowMapper<LdapGroupMapping>() {
+
+                @Override
+                public LdapGroupMapping mapRow(final ResultSet rs, final int rowNumber)
+                        throws SQLException {
+                    final LdapGroupMapping mapping = new LdapGroupMapping();
+                    mapping.setLdapGroupName(ConversionUtils.getString(rs, "LDAP_GROUP_NAME"));
+                    mapping.setSecurityRole(
+                            SecurityRoleType.lookup(ConversionUtils.getString(rs, "ROLE_CD")));
+                    mapping.setActive(ConversionUtils.getBoolean(rs, "ACTIVE_FL"));
+                    return mapping;
+                }
             };
 
     @Override
     public List<SecurityRoleType> getRolesForLdapGroups(final List<String> ldapGroups) {
-        final List<SecurityRoleType> roles = new ArrayList<>();
+        final List<SecurityRoleType> roles = new ArrayList<SecurityRoleType>();
         final Set<String> normalised = normalise(ldapGroups);
         if (normalised.isEmpty()) {
             // An IN clause with no values is not valid SQL, so short circuit rather than build one.
@@ -94,7 +109,7 @@ public class AmsUserDetailsDAOImpl extends BaseDAO implements AmsUserDetailsDAO 
      *         been known to send a trailing empty element
      */
     private static Set<String> normalise(final List<String> ldapGroups) {
-        final Set<String> normalised = new LinkedHashSet<>();
+        final Set<String> normalised = new LinkedHashSet<String>();
         if (ldapGroups == null) {
             return normalised;
         }

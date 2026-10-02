@@ -1,4 +1,4 @@
-# Local stack: Oracle 23ai Free plus the Liberty application wired to it.
+# Local stack: Oracle 23ai Free plus the application on Tomcat, wired to it.
 #
 # The passwords below are development defaults and are meant to be visible - this file brings up a
 # throwaway local database. Real environments supply the same variables from their own secret
@@ -52,43 +52,38 @@ services:
     build:
       context: ./ams-internal/AssetManagementInternalWeb
       dockerfile: Dockerfile
-      # No Java 8 Liberty image is published for arm64 - IBM Java 8 was never built for it, and the
-      # OpenJ9 Liberty variants start at Java 11. Since the application targets Java 8 bytecode and
-      # server.xml pins the jdbc-4.1 feature, the Java version is kept and the architecture given
-      # up instead: on Apple Silicon this layer runs emulated. Slower to start, correct otherwise.
-      # Drop both platform lines on an amd64 host.
-      platforms:
-        - linux/amd64
-    platform: linux/amd64
     container_name: ams-app
     depends_on:
       oracle:
         condition: service_healthy
     environment:
-      # The four variables bootstrap.properties already interpolates.
-      # server.xml defaults to the embedded H2 driver for native runs; the container path selects
-      # Oracle by overriding the driver class alongside the URL.
-      AMS_DATASOURCE_CLASS: oracle.jdbc.pool.OracleDataSource
+      # The four variables the WAR's META-INF/context.xml reads. Tomcat resolves them through the
+      # environment property source the Dockerfile registers in catalina.properties. Left unset,
+      # the same context.xml defaults to the embedded H2 driver; this selects Oracle by overriding
+      # the driver class alongside the URL.
+      AMS_DATASOURCE_DRIVER: oracle.jdbc.OracleDriver
       AMS_DATASOURCE_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
       AMS_DATASOURCE_USER: ${AMS_DB_USER:-ams}
       AMS_DATASOURCE_PASSWORD: ${AMS_DB_PASSWORD:-ams_app_pw}
-      KEYSTORE_PASSWORD: ${KEYSTORE_PASSWORD:-ams_keystore_pw}
-      # jvm.options pins the production profile, which registers the real WebSEAL header filter -
-      # correct for a deployment behind the proxy, but locally there is no proxy and every request
-      # would 403. This selects DevWebSealRequestHeaderAuthenticationFilter instead, and leaves the
-      # committed jvm.options production-correct.
-      # The container-only JVM flags live here rather than in jvm.options: UseContainerSupport is
-      # Linux-only and makes the JVM refuse to start on a developer machine, and /logs exists
-      # only in this image. The production profile is what jvm.options would otherwise select.
-      JVM_ARGS: >-
+      # The JVM options the server is started with; catalina.sh appends CATALINA_OPTS to the
+      # command line.
+      #   spring.profiles.active=local  registers the developer authentication stub. 'production'
+      #                                 registers the real WebSEAL header filter, which is correct
+      #                                 behind the proxy but 403s every request when there is none.
+      #   AppLogDir=/logs               the directory the Dockerfile creates; log4j2.xml falls back
+      #                                 to a relative "logs" when this is unset.
+      #   MaxRAMPercentage              size the heap from the container's memory limit.
+      CATALINA_OPTS: >-
         -Dspring.profiles.active=local
         -DAppLogDir=/logs
-        -XX:+UseContainerSupport
+        -Djava.awt.headless=true
+        -Dfile.encoding=UTF-8
+        -Duser.timezone=America/New_York
         -XX:MaxRAMPercentage=75.0
+        -XX:+ExitOnOutOfMemoryError
       TZ: America/New_York
     ports:
-      - "9081:9081"
-      - "9444:9444"
+      - "8080:8080"
 
 volumes:
   ams-oracle-data:

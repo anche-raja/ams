@@ -3,7 +3,7 @@ package org.example.am.internal.web.action;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.servlet.http.HttpSession;
+import javax.servlet.http.HttpSession;
 
 import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.internal.utils.InternalConstants;
@@ -13,11 +13,11 @@ import org.example.am.shared.service.CustomerSearchService;
 import org.example.am.shared.service.CustomerService;
 import org.example.am.shared.service.OrderService;
 import org.example.am.shared.utils.CommonConstants;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import org.apache.struts2.action.Action;
-import org.apache.struts2.interceptor.parameter.StrutsParameter;
+import com.opensymphony.xwork2.Action;
 
 /**
  * The home page: the customers an operator can order for, and the orders already placed for the
@@ -29,22 +29,18 @@ public class HomeAction extends BaseAction {
 
     private static final long serialVersionUID = 1L;
 
-    private final transient CustomerSearchService customerSearchService;
+    @Autowired
+    private transient CustomerSearchService customerSearchService;
 
-    private final transient CustomerService customerService;
+    @Autowired
+    private transient CustomerService customerService;
 
-    private final transient OrderService orderService;
+    @Autowired
+    private transient OrderService orderService;
 
     private List<Customer> customerList = new ArrayList<Customer>();
     private List<Order> orders = new ArrayList<Order>();
     private Long selectedCustomerId;
-
-    public HomeAction(final CustomerSearchService customerSearchService,
-            final CustomerService customerService, final OrderService orderService) {
-        this.customerSearchService = customerSearchService;
-        this.customerService = customerService;
-        this.orderService = orderService;
-    }
 
     public String home() throws Exception {
         final String denied = requireRole(SecurityRoleType.INT_SEARCH_CUSTOMERS);
@@ -108,7 +104,6 @@ public class HomeAction extends BaseAction {
         return selectedCustomerId;
     }
 
-    @StrutsParameter
     public void setSelectedCustomerId(final Long selectedCustomerId) {
         this.selectedCustomerId = selectedCustomerId;
     }

@@ -3,8 +3,8 @@ package org.example.am.internal.web.listener;
 import java.security.SecureRandom;
 import java.util.UUID;
 
-import jakarta.servlet.http.HttpSessionEvent;
-import jakarta.servlet.http.HttpSessionListener;
+import javax.servlet.http.HttpSessionEvent;
+import javax.servlet.http.HttpSessionListener;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

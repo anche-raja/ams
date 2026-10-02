@@ -1,8 +1,8 @@
 # AMS Internal Asset Management
 
 A legacy-style Java EE / Spring / Struts 2 hybrid web application, packaged as a WAR (and an EAR)
-for WebSphere Liberty. Not a Spring Boot application: there is no embedded server and no fat jar,
-and the entire bootstrap is driven by `web.xml`.
+and deployed on Apache Tomcat 9. Not a Spring Boot application: there is no embedded server and no
+fat jar, and the entire bootstrap is driven by `web.xml`.
 
 Every dependency version, where it is declared, and what blocks each upgrade: [TECH_STACK.md](TECH_STACK.md).
 
@@ -33,21 +33,28 @@ Three Maven reactors, built in this order:
 ## Building
 
 ```bash
-./build.sh
+./build.sh                    # clean install, all three reactors, on JDK 8
+./build.sh jdk21              # the same on JDK 21 - still Java 8 bytecode
+./build.sh jdk8 test          # any Maven goal; extra arguments go to Maven
+./build.sh jdk8 install -DskipTests
 ```
 
-Builds and installs all three reactors in dependency order. `./build.sh package` or
-`./build.sh test` work too.
+Builds and installs all three reactors in dependency order. The first argument names the JDK
+(`jdk8`, the default, or `jdk21`), the second the Maven goal. JDKs are found through
+`/usr/libexec/java_home`, so any vendor's install works, and `JAVA_HOME` in the calling shell is
+ignored. Requires Maven 3.9 on the PATH (Homebrew's is fine).
 
-Requires JDK 17 with `JAVA_HOME` pointed at it (the script defaults to a Zulu 17 install) and
-Maven 3.9. The compiler targets Java 8 bytecode throughout.
+The application is **Java 8**: the parent POM sets `maven.compiler.source` / `target` to 1.8 and
+the class files carry major version 52 whichever JDK built them. On JDK 9 or later the POM's
+`jdk9plus` profile activates by itself: it compiles with `--release 8`, so a Java 9+ API cannot slip
+in unnoticed, and it opens `java.lang` to the test JVM for the pinned Mockito 1.9.5 - a flag a Java 8
+JVM refuses, which is why it is not in the main Surefire configuration.
 
 ### Windows
 
-`build.sh` hardcodes a macOS layout. On Windows the toolchain lives in `C:\tools`, which an AWS
-WorkSpaces restart wipes, so restore it first in every fresh session - it extracts JDK 8, JDK 21,
-Maven and a Maven repository snapshot from the zips beside it, sets `JAVA_HOME`, and maps `X:` to
-this directory:
+On Windows the toolchain lives in `C:\tools`, which an AWS WorkSpaces restart wipes, so restore it
+first in every fresh session - it extracts JDK 8, JDK 21, Maven and a Maven repository snapshot from
+the zips beside it, sets `JAVA_HOME`, and maps `X:` to this directory:
 
 ```powershell
 . 'D:\r.anche\My Files\Home Folder\mysoftware\tools\setup-env.ps1'
@@ -62,17 +69,12 @@ Then build from Git Bash with the script for the JDK you want:
 ./build-jdk8.sh install -DskipTests
 ```
 
-Both pin their JDK regardless of the inherited `JAVA_HOME` - JDK 26 is on the system PATH and the
-pinned JaCoCo and Mockito fail on it - and both build through `X:`, because the repository's own
-path already takes its longest file past `MAX_PATH`. `build.ps1` is the PowerShell equivalent of
-`build-jdk21.sh`.
-
-`build-jdk8.sh` runs the tests on JDK 21 (Surefire's `-Djvm`). The parent POM hardcodes
-`--add-opens` into the Surefire `argLine` for the pinned Mockito, and Java 8 refuses to start with
-that flag; the code under test is still the Java 8 bytecode compiled by JDK 8.
-
-The two scripts share `target\`, so the WAR there is from whichever ran last. Both emit Java 8
-bytecode, so either runs on either JDK.
+Both pin their JDK regardless of the inherited `JAVA_HOME` - JDK 26 is on the system PATH there and
+the pinned JaCoCo fails on it - and both build through `X:`, because the repository's own path
+already takes its longest file past `MAX_PATH`. `build.ps1` is the PowerShell equivalent of
+`build-jdk21.sh`. The two scripts share `target\`, so the WAR there is from whichever ran last; both
+emit Java 8 bytecode, so either runs on either JDK. On macOS they are aliases for `./build.sh jdk8`
+and `./build.sh jdk21`.
 
 ## Architecture
 
@@ -135,7 +137,7 @@ Four properties carried over and are the ones to protect:
   harmless. Without it a cancel would decrement blind and eventually hand a place out twice.
 - **`SELECT ... FOR UPDATE` around the capacity test and the increment**, with the five-second bound
   that used to be `WAIT 5` now on the connection URL as `LOCK_TIMEOUT=5000`. It exists because
-  Liberty's `connectionTimeout` bounds pool waits, not query waits.
+  the pool's `maxWaitMillis` bounds pool waits, not query waits.
 - **`TIMESLOTS_RESERVED_CK` is the backstop.** A counter bug fails loudly instead of double-booking
   an engineer.
 - **`AVAILABLE_FL` is never written.** It means "ops opened this slot", not "this slot has room".
@@ -147,68 +149,70 @@ install order writes the order, its installation and the reservation as one aban
 ## Running
 
 ```bash
-./build.sh run     # builds, then starts the application natively - no Docker, no Oracle
-./build.sh stop    # stops it
+./build.sh jdk8 run       # builds, then deploys the WAR to Tomcat 9 on JDK 8 and starts it
+./build.sh jdk8 stop      # stops it
 ```
 
-That is the whole story: a JDK and Maven, nothing else. Liberty is fetched by
-`liberty-maven-plugin` and the database is an embedded H2 file under the server directory, built and
-seeded on first start by `SchemaInstaller`.
-
-`liberty:dev` is what `run` uses, deliberately rather than `liberty:run`: it deploys the application
-loose, from `target/classes` and `src/main/webapp`, instead of copying the 37 MB WAR on every cycle -
-almost all of which is the vendored Dojo tree.
-
-Embedded H2 is a file, and exactly one JVM may hold it. A server left behind by an earlier run keeps
-the lock and the next start fails with "Database may be already in use", which names the symptom and
-not the cause - so `run` and `stop` both clear strays first.
-
-`build-jdk8.sh run` / `build-jdk21.sh run` (and `stop`) do the same on Windows.
-
-### On Tomcat 9 (Windows)
-
-The WAR also runs on Apache Tomcat 9, on either JDK, with no change to the application. Two
-instances share one Tomcat install, so both can be up at once:
+That is the whole story: a JDK, Maven, and an internet connection the first time. `tomcat-mac.sh`
+downloads Apache Tomcat 9 into `~/tools` (checksum verified), configures one instance per JDK beside
+it, and the database is an embedded H2 file under the instance's `data/`, built and seeded on first
+start by `SchemaInstaller`. The WAR is Java 8 bytecode and Tomcat 9 runs on Java 8 and later, so the
+same WAR runs on both instances, and both can be up at once:
 
 | Instance | JDK | URL | Directory |
 |---|---|---|---|
-| `jdk8` | 8 | http://localhost:8080/AssetManagementInternalWeb | `C:\tools\tomcat-jdk8` |
-| `jdk21` | 21 | http://localhost:8081/AssetManagementInternalWeb | `C:\tools\tomcat-jdk21` |
+| `jdk8` | 8 | https://localhost:8443/AssetManagementInternalWeb (HTTP on 8080) | `~/tools/tomcat-jdk8` |
+| `jdk21` | 21 | https://localhost:8444/AssetManagementInternalWeb (HTTP on 8081) | `~/tools/tomcat-jdk21` |
 
 ```bash
-./build-jdk8.sh && ./tomcat.sh jdk8 deploy   # build, then deploy and start on JDK 8
-./tomcat.sh jdk8 deploy     # stop, copy in target\AssetManagementInternalWeb.war, start
-./tomcat.sh jdk8 start      # start without redeploying
-./tomcat.sh jdk8 stop
-./tomcat.sh jdk8 restart
-./tomcat.sh jdk8 status
-./tomcat.sh jdk8 logs       # follow logs\console.log
+./tomcat-mac.sh jdk8 deploy      # stop, copy in target/AssetManagementInternalWeb.war, start
+./tomcat-mac.sh jdk8 start       # start without redeploying
+./tomcat-mac.sh jdk8 stop
+./tomcat-mac.sh jdk8 restart
+./tomcat-mac.sh jdk8 status
+./tomcat-mac.sh jdk8 logs        # follow logs/console.log
 ```
 
-Substitute `jdk21` for the other instance. `start` and `deploy` return once `/health` answers.
+Substitute `jdk21` for the other instance. `start` and `deploy` return once `/health` answers. Use
+the **https** URL for the UI: `web.xml` marks the session cookie `Secure`, so a browser only returns
+it over TLS, and over plain HTTP every request would start a new session. The certificate is
+self-signed and generated per instance, so the browser warns once.
 
-Tomcat 9 rather than 10 or later: the application is Servlet 3.1 / JSP 2.3 on `javax.*`, and
-Tomcat 10 moved to `jakarta.*`. Each instance recreates what Liberty supplied - the
-`jdbc/amsInternalDS` pool behind `web.xml`'s `resource-ref` (a context descriptor under
-`conf\Catalina\localhost`), the H2 driver (in the instance `lib\`) and `jvm.options` (in
-`bin\setenv.bat`, including `-Dspring.profiles.active=local`). Each has its own H2 file under
-`data\`, since embedded H2 admits one JVM. Only HTTP is configured.
+Tomcat 9 rather than 10 or later: the application is Servlet 3.1 / JSP 2.3 on `javax.*`, and Tomcat
+10 moved to `jakarta.*`. The server supplies three things the WAR relies on, and each instance
+recreates them on every run: the `jdbc/amsInternalDS` pool behind `web.xml`'s `resource-ref`
+(declared in the WAR's own `META-INF/context.xml` and pointed at the instance's H2 file through the
+`AMS_DATASOURCE_URL` variable that `bin/setenv.sh` exports), the H2 driver (in the instance `lib/`,
+from `~/.m2`) and the JVM options (in `bin/setenv.sh`, including `-Dspring.profiles.active=local`).
+Each instance has its own H2 file, since embedded H2 admits one JVM.
 
-`tomcat.sh` extracts Tomcat from `tools\dl\tomcat.zip` when `C:\tools\tomcat` is missing and
-rewrites each instance's configuration on every run, so it needs nothing after a restart beyond
-`setup-env.ps1`. Hand edits to `server.xml`, the context descriptor or `setenv.bat` are overwritten;
-change the script instead.
+Hand edits to `server.xml`, `setenv.sh` or the stock `conf/` files are overwritten on the next run;
+change the script instead. `data/`, `logs/` and the certificate are kept.
 
-Console output goes to `logs\console.log`, not the terminal. The application's log4j console
+Embedded H2 is a file, and exactly one JVM may hold it. A server left behind by an earlier run keeps
+the lock and the next start fails with "Database may be already in use", which names the symptom and
+not the cause - so `deploy` and `stop` both clear strays first.
+
+Console output goes to `logs/console.log`, not the terminal. The application's log4j console
 appender holds a lock while it writes, so a JVM left writing to a terminal pipe that nobody reads
 any more hangs every request thread once the pipe fills.
 
+### On Windows
+
+`tomcat.sh` is the Git Bash equivalent, with the same two instances at `C:\tools\tomcat-jdk8` and
+`C:\tools\tomcat-jdk21` (`./tomcat.sh jdk8 deploy`, and so on; on macOS it hands over to
+`tomcat-mac.sh`). It extracts Tomcat from `tools\dl\tomcat.zip` - which must be a 9.0.x
+distribution - when `C:\tools\tomcat` is missing, writes the pool as a context descriptor under
+`conf\Catalina\localhost`, and configures HTTP only. `./build-jdk8.sh run` builds and deploys in one
+step.
+
 ### The Oracle stack
 
-`docker-compose.yml` and `db/oracle` are kept but unwired. The container path still works -
-`server.xml` takes its JDBC driver class from a variable and compose sets it to Oracle - but nothing
-maintains it, and the PL/SQL under `db/oracle/06_packages` is now reference material rather than
-running code: it is the specification the Java port was written from.
+`docker-compose.yml` and `db/oracle` are kept but unwired. The container path should still work -
+the WAR's `META-INF/context.xml` takes its driver class and URL from the environment and compose
+sets them to Oracle - but nothing maintains it (it has not been re-run since the move to Tomcat),
+and the PL/SQL under `db/oracle/06_packages` is now reference material rather than running code: it
+is the specification the Java port was written from.
 
 ```bash
 ./build.sh docker
@@ -216,9 +220,9 @@ running code: it is the specification the Java port was written from.
 
 ## Deploying
 
-The image is built from `AssetManagementInternalWeb/Dockerfile` on
-`websphere-liberty:26.0.0.8-full-java8-ibmjava`, listening on 9081 (HTTP) and 9444 (HTTPS,
-TLSv1.2). Liberty configuration is in `src/main/liberty/config`.
+The image is built from `AssetManagementInternalWeb/Dockerfile` on `tomcat:9.0-jdk8-temurin`,
+listening on 8080 (HTTP; TLS is the reverse proxy's job). The connection pool is declared in the
+WAR's `META-INF/context.xml`, so the server needs nothing else from the repository.
 
 Two files are **not** in this repository and must be supplied before the image will build — each
 directory has a README explaining what belongs there:
@@ -229,13 +233,17 @@ directory has a README explaining what belongs there:
 - `AssetManagementInternalWeb/certs/internal-ca.crt` — the internal CA the proxy and the platform
   REST services are signed by. For local use, any self-signed certificate will do.
 
-Database connection details and the keystore password come from the environment through
-`bootstrap.properties`. No credential is committed; `docker-compose.yml` carries development
+Database connection details come from the environment: `META-INF/context.xml` reads
+`AMS_DATASOURCE_DRIVER`, `AMS_DATASOURCE_URL`, `AMS_DATASOURCE_USER` and `AMS_DATASOURCE_PASSWORD`,
+each with an embedded-H2 default, through the environment property source the Dockerfile registers
+in `catalina.properties`. No credential is committed; `docker-compose.yml` carries development
 defaults for a throwaway local database only.
 
 The Spring profile selects the security wiring: `production` and `qa` register the real
 header-reading filter, while `local`, `dev` and `fit` register a developer stub that asserts a
-fixed identity when no proxy is in front of the container. Set it in `jvm.options`.
+fixed identity when no proxy is in front of the container. Set it with
+`-Dspring.profiles.active` in `CATALINA_OPTS` (`bin/setenv.sh` locally, the `app` service's
+environment in compose).
 
 ## Testing
 
@@ -262,14 +270,10 @@ Five, all deliberate:
    to 3.4.0 and 3.3.0; the original values are recorded in a comment in the parent POM. Every other
    pinned version is exactly as specified.
 
-2. **Base image.** The specified `websphere-liberty:26.0.0.2-full-java8-openj9-ubi-minimal` does
-   not exist, and neither does any java8 + openj9 combination — IBM publishes Java 8 Liberty on
-   IBM Java only, with OpenJ9 variants starting at Java 11. Using
-   `26.0.0.8-full-java8-ibmjava` instead: same Liberty feature set, same Java 8. Java 8 was kept
-   rather than moving to a Java 17 image because the whole build targets it
-   (`maven.compiler.target`, the `jdbc-4.1` feature, `ojdbc8`). The cost is that no Java 8 Liberty
-   image is built for arm64, so on Apple Silicon that one container runs emulated — see the
-   `platform` pin in `docker-compose.yml`, which should be removed on an amd64 host.
+2. **Application server.** The application was specified for WebSphere Liberty and runs on Apache
+   Tomcat 9 (`tomcat:9.0-jdk8-temurin` in the container). What the server used to supply moved with
+   it: the JNDI pool to the WAR's `META-INF/context.xml`, the JVM options to `CATALINA_OPTS`. Java 8
+   is kept, as specified; the image has an arm64 build, so nothing runs emulated on Apple Silicon.
 
 3. **Runtime JDBC driver.** `ojdbc8-23.8.0.25.04` rather than the specified 21.5.0.0, matching the
    Oracle 23ai server the compose stack runs. The BOM's test-scope pin stays at 12.2.0.1 as
@@ -407,6 +411,18 @@ how many have aged out but only fails when there are no bookable future ones lef
 
 ## Verification status
 
+On Apache Tomcat 9.0.122, on JDK 8 and JDK 21 side by side (`./build.sh jdk8 run` and
+`./tomcat-mac.sh jdk21 deploy`, embedded H2, fresh databases), 2 October 2026:
+
+| Check | Result |
+|---|---|
+| `./build.sh jdk8` - all three reactors on Zulu 1.8.0_504 | 242 tests, 0 failures (147 in `ams-common`, 95 in `ams-internal`) |
+| `./build.sh jdk21` - the same on OpenJDK 21 (`--release 8`) | 242 tests, 0 failures |
+| Class-file version in the WAR | major 52 (Java 8) |
+| `/health` over HTTP, both instances (8080, 8081) | `200` |
+| `/Home.action` over HTTPS, both instances (8443, 8444) | `200`, customer list rendered, `JSESSIONID` `Secure; HttpOnly` |
+| JNDI pool from `META-INF/context.xml`, one H2 file per instance under `~/tools/tomcat-<jdk>/data` | schema built and seeded on first start |
+
 After the reduction to the install order flow, on the native stack (`./build.sh run`, embedded H2,
 fresh database), 25 September 2026:
 
@@ -460,11 +476,3 @@ The procedure smoke test covers the cases mocks cannot: reserving a full slot re
 `NO_CAPACITY`, reserving twice does not double-count, cancelling twice returns `NOT_RESERVED` and
 leaves the counter intact, a decommission beyond the 42-day window is refused, and a repeated
 notification is suppressed rather than queued again.
-
-### Known wart
-
-Liberty writes an FFDC incident for `DSRA9010E: 'setReadOnly' is not supported` on every
-`@Transactional(readOnly = true)` entry. Spring catches it and logs at debug — the request
-succeeds — but the incident files accumulate. Fixing it properly means switching the datasource
-`res-sharing-scope` to `Unshareable`, which changes connection-pool behaviour, so it is left
-alone deliberately rather than traded for a worse problem.

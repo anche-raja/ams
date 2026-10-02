@@ -31,7 +31,7 @@ public class LanTypeAValidator extends LanValidator {
     @Override
     protected List<String> validateLanType(final String ipAddress, final String subnetMask,
             final String gateway) {
-        final List<String> messages = new ArrayList<>();
+        final List<String> messages = new ArrayList<String>();
         final String firstUsable = NetworkUtils.getFirstUsableAddress(ipAddress, subnetMask);
         if (!firstUsable.equals(ipAddress)) {
             messages.add("LAN type A requires the device to take the first usable address in the "

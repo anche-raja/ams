@@ -2,13 +2,13 @@ package org.example.am.internal.web.filter;
 
 import java.io.IOException;
 
-import jakarta.servlet.Filter;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.FilterConfig;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
-import jakarta.servlet.http.HttpServletResponse;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * Lets browsers cache the static assets.
@@ -33,10 +33,10 @@ public class StaticContentCachingHeaderFilter implements Filter {
     @Override
     public void doFilter(final ServletRequest request, final ServletResponse response,
             final FilterChain chain) throws IOException, ServletException {
-        if (response instanceof HttpServletResponse httpResponse) {
+        if (response instanceof HttpServletResponse) {
             // Set before the chain runs so the downstream security headers writer overwrites
             // nothing: whoever writes last wins, and for these paths that should be us.
-            httpResponse.setHeader(CACHE_CONTROL,
+            ((HttpServletResponse) response).setHeader(CACHE_CONTROL,
                     "max-age=" + MAX_AGE_SECONDS + ", private");
         }
         chain.doFilter(request, response);

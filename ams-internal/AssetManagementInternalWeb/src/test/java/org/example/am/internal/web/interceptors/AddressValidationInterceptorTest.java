@@ -1,14 +1,13 @@
 package org.example.am.internal.web.interceptors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,19 +23,17 @@ import org.example.am.shared.model.address.ValidatedAddress;
 import org.example.am.shared.model.address.ValidatedQualityType;
 import org.example.am.shared.service.ConfigService;
 import org.example.am.shared.service.RestService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
+import org.mockito.runners.MockitoJUnitRunner;
 
-import org.apache.struts2.action.Action;
-import org.apache.struts2.ActionInvocation;
-import org.apache.struts2.ModelDriven;
-import org.apache.struts2.interceptor.PreResultListener;
+import com.opensymphony.xwork2.Action;
+import com.opensymphony.xwork2.ActionInvocation;
+import com.opensymphony.xwork2.ModelDriven;
+import com.opensymphony.xwork2.interceptor.PreResultListener;
 
 /**
  * Covers <em>when</em> the address check runs, which is the part that was wrong.
@@ -50,13 +47,7 @@ import org.apache.struts2.interceptor.PreResultListener;
  * <p>These tests therefore assert the mechanism, not just the verdict: that the work is handed to
  * a {@link PreResultListener}, and that the listener replaces the result code.</p>
  */
-@ExtendWith(MockitoExtension.class)
-// TODO(migration): MockitoExtension enforces strict stubbing, but the common stubs configured in
-// setUp() (getAction/invoke/configService.getBoolean) are only exercised on the branches each test
-// drives. Several tests deliberately short-circuit before the config check (e.g. INPUT result,
-// international/incomplete address), leaving those stubs unused. Making the suite lenient preserves
-// the original shared-setup structure and every assertion without weakening coverage.
-@MockitoSettings(strictness = Strictness.LENIENT)
+@RunWith(MockitoJUnitRunner.class)
 public class AddressValidationInterceptorTest {
 
     /** Minimal model-driven action; the interceptor only needs {@code getModel}. */
@@ -86,7 +77,7 @@ public class AddressValidationInterceptorTest {
     private AddressValidationInterceptor interceptor;
     private InstallOrderModel model;
 
-    @BeforeEach
+    @Before
     public void setUp() throws Exception {
         interceptor = new AddressValidationInterceptor();
         interceptor.setRestService(restService);
@@ -98,7 +89,7 @@ public class AddressValidationInterceptorTest {
         when(invocation.getAction()).thenReturn(new StubAction(model));
         when(invocation.invoke()).thenReturn(Action.SUCCESS);
         when(configService.getBoolean(eq(PropertyType.ADDRESS_VALIDATION_ENABLED),
-                org.mockito.ArgumentMatchers.anyBoolean())).thenReturn(Boolean.TRUE);
+                org.mockito.Matchers.anyBoolean())).thenReturn(Boolean.TRUE);
     }
 
     private static Address completeAddress() {
@@ -167,21 +158,20 @@ public class AddressValidationInterceptorTest {
 
     @Test
     public void aCorrectionReplacesTheResultWithTheSuggestionPage() throws Exception {
-        when(restService.postAddressValidation(any(Address.class), nullable(String.class)))
+        when(restService.postAddressValidation(any(Address.class), anyString()))
                 .thenReturn(corrected());
 
         runAndCaptureListener().beforeResult(invocation, Action.SUCCESS);
 
         verify(invocation).setResultCode(InternalConstants.RESULT_AV_SUGGESTION);
-        assertNotNull(model.getSuggestedAddress(),
-                "the suggestion has to reach the model or the page has nothing to show");
+        assertNotNull("the suggestion has to reach the model or the page has nothing to show",
+                model.getSuggestedAddress());
         assertEquals("100 Main Street", model.getSuggestedAddress().getAddressLine1());
     }
 
     @Test
     public void anExactMatchMarksTheAddressValidatedAndCarriesOn() throws Exception {
-        when(restService.postAddressValidation(any(Address.class), nullable(String.class)))
-                .thenReturn(exact());
+        when(restService.postAddressValidation(any(Address.class), anyString())).thenReturn(exact());
 
         runAndCaptureListener().beforeResult(invocation, Action.SUCCESS);
 
@@ -192,15 +182,15 @@ public class AddressValidationInterceptorTest {
     /** An outage must not stop an order; the site page offers to continue unverified. */
     @Test
     public void anOutageIsNotFatal() throws Exception {
-        when(restService.postAddressValidation(any(Address.class), nullable(String.class)))
+        when(restService.postAddressValidation(any(Address.class), anyString()))
                 .thenReturn(unavailable());
 
         runAndCaptureListener().beforeResult(invocation, Action.SUCCESS);
 
         verify(invocation).setResultCode(InternalConstants.RESULT_AV_ERROR);
         assertFalse(model.getSiteAddress().isValidated());
-        assertTrue(model.isAddressCheckUnavailable(),
-                "the site page needs to know to offer continuing unverified");
+        assertTrue("the site page needs to know to offer continuing unverified",
+                model.isAddressCheckUnavailable());
     }
 
     /**
@@ -212,7 +202,7 @@ public class AddressValidationInterceptorTest {
         runAndCaptureListener().beforeResult(invocation, Action.INPUT);
 
         verify(invocation, never()).setResultCode(anyString());
-        verify(restService, never()).postAddressValidation(any(Address.class), nullable(String.class));
+        verify(restService, never()).postAddressValidation(any(Address.class), anyString());
     }
 
     @Test
@@ -222,7 +212,7 @@ public class AddressValidationInterceptorTest {
         runAndCaptureListener().beforeResult(invocation, Action.SUCCESS);
 
         verify(invocation, never()).setResultCode(anyString());
-        verify(restService, never()).postAddressValidation(any(Address.class), nullable(String.class));
+        verify(restService, never()).postAddressValidation(any(Address.class), anyString());
     }
 
     /** A foreign address is outside what the service knows; asking wastes a call. */
@@ -232,7 +222,7 @@ public class AddressValidationInterceptorTest {
 
         runAndCaptureListener().beforeResult(invocation, Action.SUCCESS);
 
-        verify(restService, never()).postAddressValidation(any(Address.class), nullable(String.class));
+        verify(restService, never()).postAddressValidation(any(Address.class), anyString());
     }
 
     /** Once the user has taken the suggestion, asking again would loop on the same page. */
@@ -242,18 +232,18 @@ public class AddressValidationInterceptorTest {
 
         runAndCaptureListener().beforeResult(invocation, Action.SUCCESS);
 
-        verify(restService, never()).postAddressValidation(any(Address.class), nullable(String.class));
+        verify(restService, never()).postAddressValidation(any(Address.class), anyString());
     }
 
     @Test
     public void theCheckIsSkippedWhenTheFeatureIsSwitchedOff() throws Exception {
         when(configService.getBoolean(eq(PropertyType.ADDRESS_VALIDATION_ENABLED),
-                org.mockito.ArgumentMatchers.anyBoolean())).thenReturn(Boolean.FALSE);
+                org.mockito.Matchers.anyBoolean())).thenReturn(Boolean.FALSE);
 
         runAndCaptureListener().beforeResult(invocation, Action.SUCCESS);
 
         verify(invocation, never()).setResultCode(anyString());
-        verify(restService, never()).postAddressValidation(any(Address.class), nullable(String.class));
+        verify(restService, never()).postAddressValidation(any(Address.class), anyString());
         assertNull(model.getSuggestedAddress());
     }
 }

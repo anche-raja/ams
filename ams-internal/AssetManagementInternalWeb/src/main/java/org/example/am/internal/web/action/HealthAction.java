@@ -2,12 +2,12 @@ package org.example.am.internal.web.action;
 
 import java.io.PrintWriter;
 
-import jakarta.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import org.apache.struts2.action.Action;
+import com.opensymphony.xwork2.Action;
 
 /**
  * The container's liveness probe.

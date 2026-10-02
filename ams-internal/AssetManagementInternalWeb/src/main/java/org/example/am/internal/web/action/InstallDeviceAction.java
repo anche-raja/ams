@@ -18,7 +18,7 @@ import org.example.am.shared.domain.NetworkConfigurationType;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import org.apache.struts2.action.Action;
+import com.opensymphony.xwork2.Action;
 
 /**
  * Step 2 of the install order: what the device is called and how it is addressed.

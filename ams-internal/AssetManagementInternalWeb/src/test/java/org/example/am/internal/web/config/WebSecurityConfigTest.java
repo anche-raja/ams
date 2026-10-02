@@ -7,7 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import jakarta.servlet.Filter;
+import javax.servlet.Filter;
 
 import org.example.am.internal.security.AmsRole;
 import org.example.am.internal.security.AmsUser;

@@ -12,7 +12,7 @@
   <artifactId>AssetManagementInternalWeb</artifactId>
   <packaging>war</packaging>
   <name>Asset Management Internal Web</name>
-  <description>The deployable web application: Struts 2 for the functional endpoints, Spring MVC for the global error pages.</description>
+  <description>The deployable web application: Struts 2 for the functional endpoints, Spring MVC for the global error pages. Deployed as a WAR on Apache Tomcat 9.</description>
 
   <dependencies>
     <dependency>
@@ -131,7 +131,11 @@
       <artifactId>log4j-slf4j-impl</artifactId>
     </dependency>
 
-    <!-- Container provided -->
+    <!--
+      Container provided. Tomcat 9 supplies the Servlet, JSP and EL APIs and the JSR-250 annotations,
+      so those stay at provided scope. It does not ship JSTL, so the JSTL API and implementation
+      travel in WEB-INF/lib.
+    -->
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
@@ -224,57 +228,10 @@
   </build>
 
   <!--
-    Runs the application natively, with no Docker and no Oracle.
-
-    Kept in a profile so an ordinary `./build.sh` or `./build.sh test` never downloads a Liberty
-    runtime. `./build.sh run` activates it.
-
-    liberty:dev rather than liberty:run: dev uses loose-application mode, writing a .war.xml that
-    points at target/classes and src/main/webapp instead of packaging anything. That matters here
-    because the vendored Dojo build makes the real WAR 37 MB, and liberty:run would copy all of it
-    on every cycle.
+    There is no run profile here. The WAR runs on an Apache Tomcat 9 that tomcat-mac.sh (macOS) or
+    tomcat.sh (Windows) installs and configures outside the build - see README "Running". The only
+    thing the server needs from the Maven repository is the H2 driver, which those scripts copy from
+    the local repository into the server's lib directory: Tomcat's connection pool loads the driver,
+    not the web application.
   -->
-  <profiles>
-    <profile>
-      <id>native</id>
-      <dependencies>
-        <!-- Runtime scope: the driver has to reach the server, and copyDependencies puts it where
-             server.xml's <library> fileset looks for it. -->
-        <dependency>
-          <groupId>com.h2database</groupId>
-          <artifactId>h2</artifactId>
-          <scope>runtime</scope>
-        </dependency>
-      </dependencies>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>io.openliberty.tools</groupId>
-            <artifactId>liberty-maven-plugin</artifactId>
-            <version>${liberty.plugin.version}</version>
-            <configuration>
-              <serverName>amsInternal</serverName>
-              <configDirectory>${project.basedir}/src/main/liberty/config</configDirectory>
-              <runtimeArtifact>
-                <groupId>io.openliberty</groupId>
-                <artifactId>openliberty-runtime</artifactId>
-                <version>${openliberty.version}</version>
-                <type>zip</type>
-              </runtimeArtifact>
-              <copyDependencies>
-                <dependencyGroup>
-                  <location>lib</location>
-                  <dependency>
-                    <groupId>com.h2database</groupId>
-                    <artifactId>h2</artifactId>
-                    <version>${h2.version}</version>
-                  </dependency>
-                </dependencyGroup>
-              </copyDependencies>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>

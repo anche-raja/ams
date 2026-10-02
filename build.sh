@@ -1,73 +1,94 @@
 #!/usr/bin/env bash
-# Builds the three AMS reactors in dependency order, installing each to the local
-# repository before the next one resolves against it.
+# macOS build. Builds the three AMS reactors in dependency order, installing each to the local
+# repository before the next one resolves against it, on the JDK you name.
 #
-#   ./build.sh              clean install, all three reactors
-#   ./build.sh test         run the tests only
-#   ./build.sh run          build, then run the application natively - no Docker, no Oracle
-#   ./build.sh stop         stop a natively running server
-#   ./build.sh docker       build, then bring the whole stack up under docker compose
+#   ./build.sh                      clean install, all three reactors, on JDK 8
+#   ./build.sh jdk8                 the same, explicitly
+#   ./build.sh jdk21                the same on JDK 21 (still Java 8 bytecode - see below)
+#   ./build.sh jdk8 test            run the tests only
+#   ./build.sh jdk8 package         package without installing
+#   ./build.sh jdk8 run             build, then deploy the WAR to Tomcat 9 and start it (tomcat-mac.sh)
+#   ./build.sh jdk8 stop            stop that Tomcat instance
+#
+# Anything after the goal is passed to Maven:   ./build.sh jdk8 install -DskipTests
+# The JDK may be omitted, so ./build.sh test and ./build.sh run still mean what they always did.
+#
+# JDKs are found through /usr/libexec/java_home, so any vendor's install works (Zulu, Temurin,
+# Homebrew openjdk). JAVA_HOME in the calling shell is ignored, deliberately: the build is pinned to
+# the JDK you asked for, whatever the shell happens to have on its PATH.
+#
+# The application is Java 8 (maven.compiler.source/target 1.8 in ams-parent-bom/pom.xml). JDK 8 is
+# the deployment JDK and compiles it as-is. A newer JDK activates the parent POM's jdk9plus profile,
+# which compiles with --release 8 (so a Java 9+ API cannot slip in) and opens java.lang to the test
+# JVM for the pinned Mockito; the class files are version 52 either way. A JDK older than the target
+# is refused up front rather than failing inside javac.
+#
+# build-jdk8.sh / build-jdk21.sh (the Git Bash scripts for Windows) run this on macOS.
 set -euo pipefail
 
-export JAVA_HOME="${JAVA_HOME:-/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home}"
-export PATH="/opt/homebrew/bin:$JAVA_HOME/bin:$PATH"
-
 HERE="$(cd "$(dirname "$0")" && pwd)"
+
+# ------------------------------------------------------------------------------- arguments
+JDK_NAME=jdk8
+case "${1:-}" in
+  jdk[0-9]*) JDK_NAME="$1"; shift ;;
+esac
 GOAL="${1:-install}"
 shift || true
 
+# ------------------------------------------------------------------------------- toolchain
+# jdk8 -> 1.8 for java_home; everything newer is named by its major version.
+JAVA_VER="${JDK_NAME#jdk}"
+[ "$JAVA_VER" = 8 ] && JAVA_VER=1.8
+JAVA_HOME="$(/usr/libexec/java_home -v "$JAVA_VER" 2>/dev/null)" \
+  || { echo "!! no JDK $JAVA_VER installed - /usr/libexec/java_home -V lists what is"; exit 1; }
+export JAVA_HOME
+export PATH="$JAVA_HOME/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+command -v mvn >/dev/null || { echo "!! no mvn on the PATH - brew install maven"; exit 1; }
+
+# "1.8.0_504" -> 8, "21.0.12.1" -> 21
+JAVA_MAJOR="$("$JAVA_HOME/bin/java" -version 2>&1 | head -1 | sed -E 's/.*"([0-9]+)(\.([0-9]+))?.*/\1 \3/' \
+             | awk '{ print ($1 == 1) ? $2 : $1 }')"
+# The Java level the build targets: maven.compiler.target ("1.8" -> 8), or release if that is what
+# the POM uses instead.
+POM="$HERE/ams-parent-bom/pom.xml"
+TARGET="$(sed -n 's:.*<maven.compiler.target>\([0-9.]*\)</maven.compiler.target>.*:\1:p' "$POM" | head -1)"
+[ -n "$TARGET" ] || TARGET="$(sed -n 's:.*<maven.compiler.release>\([0-9]*\)</maven.compiler.release>.*:\1:p' "$POM" | head -1)"
+TARGET="${TARGET#1.}"
+if [ -n "$TARGET" ] && [ "$JAVA_MAJOR" -lt "$TARGET" ]; then
+  cat <<MSG
+!! $JDK_NAME ($("$JAVA_HOME/bin/java" -version 2>&1 | head -1)) is older than the Java $TARGET this
+   application targets (ams-parent-bom/pom.xml), so it can neither compile nor run it.
+   Use ./build.sh jdk$TARGET or newer.
+MSG
+  exit 1
+fi
+
+# ------------------------------------------------------------------------------- build
 build_reactors() {
   local goal="$1"; shift
   for reactor in ams-parent-bom ams-common ams-internal; do
     echo "==> [$reactor] mvn clean $goal"
-    mvn -q -f "$HERE/$reactor/pom.xml" clean "$goal" "$@"
+    mvn -B -q -f "$HERE/$reactor/pom.xml" clean "$goal" "$@"
   done
   echo "==> all reactors built"
+  local war="$HERE/ams-internal/AssetManagementInternalWeb/target/AssetManagementInternalWeb.war"
+  [ -f "$war" ] && echo "    $(du -h "$war" | cut -f1)  $war"
 }
 
-WEB_POM="$HERE/ams-internal/AssetManagementInternalWeb/pom.xml"
+echo "JAVA_HOME = $JAVA_HOME"
+mvn -version | head -1
+echo
 
-# Embedded H2 is a file, and exactly one JVM may hold it. A server left behind by an earlier run -
-# or by a start that failed after the JVM came up - keeps the lock, and the next start fails with
-# "Database may be already in use" rather than anything that names the real problem.
-stop_native() {
-  mvn -q -f "$WEB_POM" -P native liberty:stop >/dev/null 2>&1 || true
-  pkill -f 'wlp.*amsInternal' >/dev/null 2>&1 || true
-}
-
-if [ "$GOAL" = "stop" ]; then
-  stop_native
-  echo "==> native server stopped"
-  exit 0
-fi
-
-if [ "$GOAL" = "run" ]; then
-  build_reactors install "$@"
-  stop_native
-  echo "==> liberty:dev (Ctrl-C to stop)"
-  # dev rather than run: it deploys the application loose, from target/classes and src/main/webapp,
-  # instead of copying the 37 MB WAR on every cycle - almost all of which is the vendored Dojo tree.
-  exec mvn -f "$WEB_POM" -P native liberty:dev
-fi
-
-if [ "$GOAL" = "docker" ]; then
-  # The image copies target/AssetManagementInternalWeb.war, so the Maven build has to run first.
-  build_reactors install "$@"
-
-  WAR="$HERE/ams-internal/AssetManagementInternalWeb/target/AssetManagementInternalWeb.war"
-  [ -f "$WAR" ] || { echo "!! $WAR was not produced"; exit 1; }
-
-  # Both are supplied per environment and deliberately not committed; the Dockerfile COPYs them
-  # unconditionally, so a missing one fails the image build with a much less obvious message.
-  LIB="$HERE/ams-internal/AssetManagementInternalWeb/lib"
-  CRT="$HERE/ams-internal/AssetManagementInternalWeb/certs/internal-ca.crt"
-  compgen -G "$LIB/ojdbc8-*.jar" >/dev/null \
-    || { echo "!! no ojdbc8 jar in $LIB - see the README there"; exit 1; }
-  [ -f "$CRT" ] \
-    || { echo "!! $CRT is missing - see the README in that directory"; exit 1; }
-
-  echo "==> docker compose up --build"
-  exec docker compose -f "$HERE/docker-compose.yml" up --build
-fi
-
-build_reactors "$GOAL" "$@"
+case "$GOAL" in
+  run)
+    build_reactors install "$@"
+    exec "$HERE/tomcat-mac.sh" "$JDK_NAME" deploy
+    ;;
+  stop)
+    exec "$HERE/tomcat-mac.sh" "$JDK_NAME" stop
+    ;;
+  *)
+    build_reactors "$GOAL" "$@"
+    ;;
+esac

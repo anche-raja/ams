@@ -17,16 +17,17 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  * The data source and the transaction manager.
  *
  * <p>The pool is the container's, looked up over JNDI, so connection sizing, validation and
- * failover are configured in the Liberty {@code server.xml} rather than in the application. There
- * is no ORM, so the transaction manager is the plain JDBC one: a {@code @Transactional} service
- * method and the {@code NamedParameterJdbcTemplate} calls underneath it share one connection and
- * one transaction.</p>
+ * failover are configured in Tomcat's {@code META-INF/context.xml} (or a per-instance descriptor
+ * under {@code conf/Catalina/localhost}) rather than in the application. There is no ORM, so the
+ * transaction manager is the plain JDBC one: a {@code @Transactional} service method and the
+ * {@code NamedParameterJdbcTemplate} calls underneath it share one connection and one
+ * transaction.</p>
  */
 @Configuration
 @EnableTransactionManagement
 public class DataSourceConfig {
 
-    /** Matches the {@code jndiName} on the Liberty {@code dataSource} element. */
+    /** Matches the {@code name} on the Tomcat {@code <Resource>} and the resource-ref in web.xml. */
     public static final String DATA_SOURCE_JNDI_NAME = "jdbc/amsInternalDS";
 
     @Bean

@@ -1,6 +1,6 @@
 package org.example.am.internal.web.action;
 
-import jakarta.servlet.http.HttpSession;
+import javax.servlet.http.HttpSession;
 
 import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.internal.utils.InternalConstants;

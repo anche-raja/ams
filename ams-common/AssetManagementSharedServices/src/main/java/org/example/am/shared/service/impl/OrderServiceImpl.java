@@ -27,6 +27,7 @@ import org.example.am.shared.domain.OrderStatusType;
 import org.example.am.shared.domain.Timeslot;
 import org.example.am.shared.service.CalendarService;
 import org.example.am.shared.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,35 +38,29 @@ public class OrderServiceImpl implements OrderService {
 
     private static final Logger LOGGER = LogManager.getLogger(OrderServiceImpl.class);
 
-    private final OrderDAO orderDAO;
+    @Autowired
+    private OrderDAO orderDAO;
 
-    private final RequestDAO requestDAO;
+    @Autowired
+    private RequestDAO requestDAO;
 
-    private final StoredProcedureDAO storedProcedureDAO;
+    @Autowired
+    private StoredProcedureDAO storedProcedureDAO;
 
-    private final CalendarService calendarService;
+    @Autowired
+    private CalendarService calendarService;
 
-    private final AddressDAO addressDAO;
+    @Autowired
+    private AddressDAO addressDAO;
 
-    private final ContactDAO contactDAO;
+    @Autowired
+    private ContactDAO contactDAO;
 
-    private final AssetConfigDAO assetConfigDAO;
+    @Autowired
+    private AssetConfigDAO assetConfigDAO;
 
-    private final InstallationDAO installationDAO;
-
-    public OrderServiceImpl(final OrderDAO orderDAO, final RequestDAO requestDAO,
-            final StoredProcedureDAO storedProcedureDAO, final CalendarService calendarService,
-            final AddressDAO addressDAO, final ContactDAO contactDAO,
-            final AssetConfigDAO assetConfigDAO, final InstallationDAO installationDAO) {
-        this.orderDAO = orderDAO;
-        this.requestDAO = requestDAO;
-        this.storedProcedureDAO = storedProcedureDAO;
-        this.calendarService = calendarService;
-        this.addressDAO = addressDAO;
-        this.contactDAO = contactDAO;
-        this.assetConfigDAO = assetConfigDAO;
-        this.installationDAO = installationDAO;
-    }
+    @Autowired
+    private InstallationDAO installationDAO;
 
     @Override
     public List<Order> getOrdersForCustomer(final long customerId) {

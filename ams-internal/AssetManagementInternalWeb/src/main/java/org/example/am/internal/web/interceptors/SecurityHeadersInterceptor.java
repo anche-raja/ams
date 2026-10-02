@@ -1,11 +1,11 @@
 package org.example.am.internal.web.interceptors;
 
-import jakarta.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.struts2.ServletActionContext;
 
-import org.apache.struts2.ActionInvocation;
-import org.apache.struts2.interceptor.AbstractInterceptor;
+import com.opensymphony.xwork2.ActionInvocation;
+import com.opensymphony.xwork2.interceptor.AbstractInterceptor;
 
 /**
  * Sets the response security headers on the Struts path.
