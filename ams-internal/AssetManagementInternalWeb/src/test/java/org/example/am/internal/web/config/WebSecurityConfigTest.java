@@ -27,6 +27,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -42,8 +43,9 @@ import org.springframework.web.context.WebApplicationContext;
  * that everything else is refused with 403 rather than redirected to a login page that does not
  * exist, and that a request carrying the proxy's headers gets through.</p>
  */
-@SpringJUnitConfig(WebSecurityConfigTest.TestConfig.class)
+@SpringJUnitConfig
 @WebAppConfiguration
+@ContextConfiguration(classes = WebSecurityConfigTest.TestConfig.class)
 public class WebSecurityConfigTest {
 
     /**
