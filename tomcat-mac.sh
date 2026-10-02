@@ -10,9 +10,9 @@
 # Typical cycle:   ./build.sh jdk8 && ./tomcat-mac.sh jdk8 deploy        (or just ./build.sh jdk8 run)
 #
 # Instances (the same ports as the Windows tomcat.sh, so the README's table holds on both):
-#   jdk8    HTTP 8080  HTTPS 8443   ~/tools/tomcat-jdk8     the deployment JDK
-#   jdk21   HTTP 8081  HTTPS 8444   ~/tools/tomcat-jdk21    the same WAR on a current JDK
-#   jdk17   HTTP 8082  HTTPS 8445   ~/tools/tomcat-jdk17    optional third instance
+#   jdk8    http://localhost:8080   ~/tools/tomcat-jdk8     the deployment JDK
+#   jdk21   http://localhost:8081   ~/tools/tomcat-jdk21    the same WAR on a current JDK
+#   jdk17   http://localhost:8082   ~/tools/tomcat-jdk17    optional third instance
 #
 # Tomcat 9 rather than 10 or later: the application is Servlet 3.1 / JSP 2.3 on the javax.*
 # namespace, and Tomcat 10 moved to jakarta.*. Tomcat 9 runs on Java 8 and later, and the WAR is
@@ -24,15 +24,14 @@
 #     AMS_DATASOURCE_URL variable exported from bin/setenv.sh.
 #   - the H2 driver that pool loads                      -> instance lib/, copied from ~/.m2
 #   - the JVM options (Spring profile, timezone, log dir) -> bin/setenv.sh
-# plus an HTTPS connector: web.xml marks the session cookie Secure, so a browser only returns it over
-# TLS. Use the https URL for the UI; http serves /health. The certificate comes from mkcert's local
-# CA when mkcert is installed (brew install mkcert && mkcert -install, once: the Mac then trusts that
-# CA and Chrome and Safari show the padlock) and is self-signed otherwise, which works but is flagged.
+#
+# HTTP only. TLS is the reverse proxy's job in every real environment, and web.xml no longer forces
+# the session cookie Secure, so the application works over plain HTTP here.
 #
 # Tomcat is downloaded from dlcdn.apache.org into ~/tools/dl and its SHA-512 checked. Everything
 # under ~/tools is rebuilt from that archive and the Maven repository; hand edits to server.xml,
 # setenv.sh or the stock conf files are overwritten on the next run - change this script instead.
-# data/ (the H2 file), logs/ and the certificate are kept.
+# data/ (the H2 file) and logs/ are kept.
 set -euo pipefail
 
 usage() { sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
@@ -44,9 +43,9 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 JDK_NAME="${1:-}"
 CMD="${2:-deploy}"
 case "$JDK_NAME" in
-  jdk8)  JAVA_VER=1.8; HTTP_PORT=8080; HTTPS_PORT=8443; SHUTDOWN_PORT=8005 ;;
-  jdk17) JAVA_VER=17;  HTTP_PORT=8082; HTTPS_PORT=8445; SHUTDOWN_PORT=8007 ;;
-  jdk21) JAVA_VER=21;  HTTP_PORT=8081; HTTPS_PORT=8444; SHUTDOWN_PORT=8006 ;;
+  jdk8)  JAVA_VER=1.8; HTTP_PORT=8080; SHUTDOWN_PORT=8005 ;;
+  jdk17) JAVA_VER=17;  HTTP_PORT=8082; SHUTDOWN_PORT=8007 ;;
+  jdk21) JAVA_VER=21;  HTTP_PORT=8081; SHUTDOWN_PORT=8006 ;;
   *)     usage ;;
 esac
 
@@ -55,8 +54,6 @@ WAR="$HERE/ams-internal/AssetManagementInternalWeb/target/$APP.war"
 CATALINA_HOME="$TOOLS/apache-tomcat-$TOMCAT_VERSION"
 CATALINA_BASE="$TOOLS/tomcat-$JDK_NAME"
 URL="http://localhost:$HTTP_PORT/$APP"
-URL_TLS="https://localhost:$HTTPS_PORT/$APP"
-KEYSTORE_PASSWORD="${KEYSTORE_PASSWORD:-amsLocalKeystorePw}"
 
 # ---------------------------------------------------------------- JDK
 JAVA_HOME="$(/usr/libexec/java_home -v "$JAVA_VER" 2>/dev/null)" \
@@ -108,41 +105,6 @@ install_home() {
   [ -f "$CATALINA_HOME/bin/catalina.sh" ] || { echo "!! extraction did not produce $CATALINA_HOME"; exit 1; }
 }
 
-# ---------------------------------------------------------------- certificate
-# Issued by mkcert's local CA when mkcert is installed - the macOS keychain trusts that CA after a
-# one-time `mkcert -install`, so Chrome and Safari show the padlock - and self-signed otherwise.
-# conf/keystore.issuer records which, so installing mkcert later replaces a self-signed keystore on
-# the next run. Either way the result is one PKCS12 key entry under the script's password, which is
-# all server.xml needs to know; mkcert's own PKCS12 password is fixed, hence the re-keying.
-make_keystore() {
-  local ks="$CATALINA_BASE/conf/keystore.p12" marker="$CATALINA_BASE/conf/keystore.issuer" want=self-signed
-  command -v mkcert >/dev/null 2>&1 && want=mkcert
-  if [ -f "$ks" ] && [ "$(cat "$marker" 2>/dev/null)" = "$want" ]; then return; fi
-  rm -f "$ks"
-  if [ "$want" = mkcert ]; then
-    echo "==> issuing a certificate for localhost from the mkcert local CA"
-    local tmp; tmp="$(mktemp -d)"
-    mkcert -pkcs12 -p12-file "$tmp/mkcert.p12" localhost 127.0.0.1 ::1 >/dev/null 2>&1
-    # -destkeypass as well as -deststorepass: a JDK 8 keytool refuses to write a PKCS12 whose key
-    # and store passwords differ, and PKCS12 keeps them equal anyway.
-    "$JAVA_HOME/bin/keytool" -importkeystore -noprompt \
-      -srckeystore "$tmp/mkcert.p12" -srcstoretype PKCS12 -srcstorepass changeit \
-      -destkeystore "$ks" -deststoretype PKCS12 -deststorepass "$KEYSTORE_PASSWORD" \
-      -destkeypass "$KEYSTORE_PASSWORD" >/dev/null 2>&1
-    rm -rf "$tmp"
-    # Trust is the client's business, so this needs no restart once it is done.
-    security find-certificate -a /Library/Keychains/System.keychain 2>/dev/null | grep -q mkcert \
-      || echo "    the mkcert CA is not in the System keychain yet: run 'mkcert -install' once (admin password)"
-  else
-    echo "==> generating a self-signed certificate for localhost (browsers will warn;"
-    echo "    'brew install mkcert && mkcert -install', then './tomcat-mac.sh $JDK_NAME restart', makes it trusted)"
-    "$JAVA_HOME/bin/keytool" -genkeypair -alias ams-local -keyalg RSA -keysize 2048 -validity 825 \
-      -storetype PKCS12 -keystore "$ks" -storepass "$KEYSTORE_PASSWORD" \
-      -dname "CN=localhost, OU=AMS, O=Local development" -ext "SAN=dns:localhost,ip:127.0.0.1" >/dev/null
-  fi
-  echo "$want" > "$marker"
-}
-
 # The instance directory. Configuration is rewritten on every run so it always matches this script
 # and the Tomcat it runs on - the stock conf files are re-copied from CATALINA_HOME every time, so a
 # base that was last used with a different Tomcat version is brought up to date. data/, logs/,
@@ -169,8 +131,6 @@ install_base() {
   rm -f "$CATALINA_BASE"/lib/h2-*.jar
   cp "$h2jar" "$CATALINA_BASE/lib/"
 
-  make_keystore
-
   cat > "$CATALINA_BASE/conf/server.xml" <<XML
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Generated by ams/tomcat-mac.sh - edits are overwritten on the next run. -->
@@ -180,17 +140,8 @@ install_base() {
   <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener"/>
   <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener"/>
   <Service name="Catalina">
-    <Connector port="$HTTP_PORT" protocol="HTTP/1.1" connectionTimeout="20000"
-               redirectPort="$HTTPS_PORT" server="AMS"/>
-    <!-- TLSv1.2 and 1.3 only (Java 8u261 and later speak 1.3). -->
-    <Connector port="$HTTPS_PORT" protocol="org.apache.coyote.http11.Http11NioProtocol"
-               SSLEnabled="true" maxThreads="150" server="AMS">
-      <SSLHostConfig protocols="TLSv1.2+TLSv1.3">
-        <Certificate certificateKeystoreFile="\${catalina.base}/conf/keystore.p12"
-                     certificateKeystorePassword="$KEYSTORE_PASSWORD"
-                     certificateKeystoreType="PKCS12" type="RSA"/>
-      </SSLHostConfig>
-    </Connector>
+    <!-- HTTP only: TLS is the reverse proxy's job. -->
+    <Connector port="$HTTP_PORT" protocol="HTTP/1.1" connectionTimeout="20000" server="AMS"/>
     <Engine name="Catalina" defaultHost="localhost">
       <Host name="localhost" appBase="webapps" unpackWARs="true" autoDeploy="false">
         <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
@@ -252,8 +203,7 @@ start_server() {
     local code; code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "$URL/health" || true)"
     if [ "$code" = 200 ]; then
       echo "- up"
-      echo "==> $URL_TLS   (UI - the session cookie is Secure, so use https)"
-      echo "==> $URL/health"
+      echo "==> $URL"
       return
     fi
     printf '.'; sleep 3
@@ -273,10 +223,10 @@ deploy_war() {
 # previous configuration (possibly a different Tomcat version) is shut down with the files it knows.
 case "$CMD" in
   deploy)  check_jdk; install_home; stop_server; install_base; deploy_war; start_server ;;
-  start)   check_jdk; install_home; running && { echo "already running: $URL_TLS"; exit 0; }; install_base; start_server ;;
+  start)   check_jdk; install_home; running && { echo "already running: $URL"; exit 0; }; install_base; start_server ;;
   stop)    stop_server; echo "==> $JDK_NAME instance stopped" ;;
   restart) check_jdk; install_home; stop_server; install_base; start_server ;;
-  status)  if running; then echo "$JDK_NAME: running on $URL_TLS"; else echo "$JDK_NAME: stopped"; fi ;;
+  status)  if running; then echo "$JDK_NAME: running on $URL"; else echo "$JDK_NAME: stopped"; fi ;;
   logs)    tail -F "$CATALINA_BASE/logs/console.log" ;;
   *)       usage ;;
 esac

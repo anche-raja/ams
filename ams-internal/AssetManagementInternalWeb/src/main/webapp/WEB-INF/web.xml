@@ -158,7 +158,14 @@
     <session-timeout>30</session-timeout>
     <cookie-config>
       <http-only>true</http-only>
-      <secure>true</secure>
+      <!--
+        Not forced Secure: the application is served over plain HTTP, both locally and behind the
+        reverse proxy that terminates TLS in production. With this false, Tomcat still marks the
+        cookie Secure whenever the request itself is secure - which, behind the proxy, is what a
+        RemoteIpValve honouring X-Forwarded-Proto makes it. Forcing true here would stop a browser
+        returning the cookie over HTTP at all, and every request would start a new session.
+      -->
+      <secure>false</secure>
     </cookie-config>
     <tracking-mode>COOKIE</tracking-mode>
   </session-config>

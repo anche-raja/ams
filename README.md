@@ -161,8 +161,8 @@ same WAR runs on both instances, and both can be up at once:
 
 | Instance | JDK | URL | Directory |
 |---|---|---|---|
-| `jdk8` | 8 | https://localhost:8443/AssetManagementInternalWeb (HTTP on 8080) | `~/tools/tomcat-jdk8` |
-| `jdk21` | 21 | https://localhost:8444/AssetManagementInternalWeb (HTTP on 8081) | `~/tools/tomcat-jdk21` |
+| `jdk8` | 8 | http://localhost:8080/AssetManagementInternalWeb | `~/tools/tomcat-jdk8` |
+| `jdk21` | 21 | http://localhost:8081/AssetManagementInternalWeb | `~/tools/tomcat-jdk21` |
 
 ```bash
 ./tomcat-mac.sh jdk8 deploy      # stop, copy in target/AssetManagementInternalWeb.war, start
@@ -173,21 +173,10 @@ same WAR runs on both instances, and both can be up at once:
 ./tomcat-mac.sh jdk8 logs        # follow logs/console.log
 ```
 
-Substitute `jdk21` for the other instance. `start` and `deploy` return once `/health` answers. Use
-the **https** URL for the UI: `web.xml` marks the session cookie `Secure`, so a browser only returns
-it over TLS, and over plain HTTP every request would start a new session.
-
-**A certificate the browser trusts.** Install [mkcert](https://github.com/FiloSottile/mkcert) once:
-
-```bash
-brew install mkcert && mkcert -install   # one admin-password prompt: adds a local CA to the keychain
-./tomcat-mac.sh jdk8 restart             # and jdk21: reissues the instance certificate from that CA
-```
-
-The instances then serve certificates signed by a CA the Mac trusts, and Chrome and Safari show the
-padlock. Without mkcert the script falls back to a self-signed certificate, which works but is
-flagged "Not Secure". A site you previously clicked through in Chrome keeps that choice until you
-reset it from the padlock menu ("Turn on warnings"); that is cosmetic.
+Substitute `jdk21` for the other instance. `start` and `deploy` return once `/health` answers.
+Everything is plain HTTP: TLS is the reverse proxy's job in every real environment, and `web.xml`
+does not force the session cookie `Secure` (Tomcat still sets the flag on a request that is itself
+secure, which behind the proxy means honouring `X-Forwarded-Proto` with a `RemoteIpValve`).
 
 Tomcat 9 rather than 10 or later: the application is Servlet 3.1 / JSP 2.3 on `javax.*`, and Tomcat
 10 moved to `jakarta.*`. The server supplies three things the WAR relies on, and each instance
@@ -198,7 +187,7 @@ from `~/.m2`) and the JVM options (in `bin/setenv.sh`, including `-Dspring.profi
 Each instance has its own H2 file, since embedded H2 admits one JVM.
 
 Hand edits to `server.xml`, `setenv.sh` or the stock `conf/` files are overwritten on the next run;
-change the script instead. `data/`, `logs/` and the certificate are kept.
+change the script instead. `data/` and `logs/` are kept.
 
 Embedded H2 is a file, and exactly one JVM may hold it. A server left behind by an earlier run keeps
 the lock and the next start fails with "Database may be already in use", which names the symptom and
@@ -430,8 +419,8 @@ On Apache Tomcat 9.0.122, on JDK 8 and JDK 21 side by side (`./build.sh jdk8 run
 | `./build.sh jdk8` - all three reactors on Zulu 1.8.0_504 | 242 tests, 0 failures (147 in `ams-common`, 95 in `ams-internal`) |
 | `./build.sh jdk21` - the same on OpenJDK 21 (`--release 8`) | 242 tests, 0 failures |
 | Class-file version in the WAR | major 52 (Java 8) |
-| `/health` over HTTP, both instances (8080, 8081) | `200` |
-| `/Home.action` over HTTPS, both instances (8443, 8444) | `200`, customer list rendered, `JSESSIONID` `Secure; HttpOnly` |
+| `/health`, both instances (8080, 8081) | `200` |
+| `/Home.action` over HTTP, both instances (8080, 8081) | `200`, customer list rendered, `JSESSIONID` `HttpOnly`, returned on the next request |
 | JNDI pool from `META-INF/context.xml`, one H2 file per instance under `~/tools/tomcat-<jdk>/data` | schema built and seeded on first start |
 
 After the reduction to the install order flow, on the native stack (`./build.sh run`, embedded H2,
