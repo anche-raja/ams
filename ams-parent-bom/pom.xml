@@ -54,6 +54,8 @@
     <mockito.version>5.14.2</mockito.version>
 
     <jacoco.plugin.version>0.8.11</jacoco.plugin.version>
+    <liberty.plugin.version>3.11.4</liberty.plugin.version>
+    <openliberty.version>24.0.0.12</openliberty.version>
 
     <!--
       The packaging plugins are the one place the original pinned versions could not be kept.

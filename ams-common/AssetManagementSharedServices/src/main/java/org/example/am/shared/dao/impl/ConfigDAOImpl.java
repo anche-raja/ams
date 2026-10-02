@@ -51,9 +51,13 @@ public class ConfigDAOImpl extends BaseDAO implements ConfigDAO {
     public Map<String, String> getAllProperties() {
         final Map<String, String> properties = new LinkedHashMap<>();
         getNamedParameterJdbcTemplate().query(SELECT_ALL_PROPERTIES,
-                ParameterRepository.create().build(), (final ResultSet rs) -> properties.put(
-                        ConversionUtils.getString(rs, "PROPERTY_KEY"),
-                        ConversionUtils.getString(rs, "PROPERTY_VALUE")));
+                ParameterRepository.create().build(),
+                (final ResultSet rs, final int rowNum) -> {
+                    properties.put(
+                            ConversionUtils.getString(rs, "PROPERTY_KEY"),
+                            ConversionUtils.getString(rs, "PROPERTY_VALUE"));
+                    return null;
+                });
         return properties;
     }
 
