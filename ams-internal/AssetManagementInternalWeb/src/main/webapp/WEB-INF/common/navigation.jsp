@@ -13,5 +13,8 @@
     <c:if test="${pageContext.request.isUserInRole('INT_CREATE_ORDER')}">
       <li><a href="${pageContext.request.contextPath}/install/Site.action">Install order</a></li>
     </c:if>
+    <c:if test="${pageContext.request.isUserInRole('INT_VIEW_ORDER')}">
+      <li><a href="${pageContext.request.contextPath}/Report.action">Order activity</a></li>
+    </c:if>
   </ul>
 </nav>

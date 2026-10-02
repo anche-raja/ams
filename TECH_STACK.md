@@ -182,3 +182,28 @@ anonymous `RowMapper` implementations, and `javax.annotation` rather than `jakar
 `@StrutsParameter` being absent everywhere is the one that fails silently. Struts 7 stops injecting
 request parameters into unannotated setters — an action still compiles, still runs, and simply
 receives nulls for every field the form submitted.
+
+### Modernisation showcase: the order activity report
+
+`/Report.action` - `ReportAction`, `OrderActivityServiceImpl`, `ActivityReport`,
+`ActivityReportLine` and their three tests - was written on 2 October 2026 in deliberately
+pre-Java 9 idioms, so a Java 21 upgrade has one small, self-contained feature to rewrite and the
+before/after is easy to show. Each idiom, where it is, and what a current JDK offers instead:
+
+| Java 8 idiom | Where | Java 21 equivalent |
+|---|---|---|
+| Anonymous `Comparator` class | `OrderActivityServiceImpl.buildReport` | lambda, `Comparator.comparingInt(...).thenComparing(...)` |
+| `switch` on a `String` with fall-through `case` labels and `break` | `OrderActivityServiceImpl.summarise` | switch expression, `case "A", "B" ->` |
+| Hand-written value class: fields, getters, setters, `equals`, `hashCode`, `toString` | `ActivityReportLine` | `record` |
+| `instanceof` followed by a cast | `ActivityReportLine.equals` | pattern matching for `instanceof` |
+| `Collections.unmodifiableList(new ArrayList<T>(x))`, `unmodifiableMap(...)` | `ActivityReport` constructor | `List.copyOf`, `Map.copyOf` |
+| Explicit type arguments: `new ArrayList<ActivityReportLine>()`, `Collections.<Order>emptyList()` | throughout | diamond `<>`, `var`, `List.of()` |
+| Index `for` loops and explicit `Iterator` loops | `ActivityReport`, `OrderActivityServiceImpl` | enhanced `for`, streams, `Collectors.groupingBy` |
+| Counting into a `Map` with `containsKey` and `put` | `OrderActivityServiceImpl.count` | `Map.merge` |
+| `java.util.Date`, `Calendar` arithmetic, `SimpleDateFormat` | `daysBetween`, `describe`, `ReportAction.toCsv` | `java.time`: `LocalDate`, `ChronoUnit.DAYS.between`, `DateTimeFormatter` |
+| `null` checks standing in for an absent value | `earlier`, `isAfter`, `getOldestOpenOrderAgeDays` | `Optional` |
+| `StringBuffer` and `StringBuilder` text building, `String.format` | `ReportAction.toCsv`, `describe` | text blocks, `String.formatted` |
+| `getBytes("UTF-8")` with a checked `UnsupportedEncodingException` | `ReportAction.exportCsv` | `StandardCharsets.UTF_8` |
+| `try { } finally { close() }` | `ReportActionTest.readLines` | try-with-resources |
+| Boxing by hand: `Integer.valueOf`, `.intValue()`, `.longValue()` | throughout | autoboxing left to the compiler |
+| JUnit 4 (`@RunWith`, `@Before`, message-first `assertEquals`) and Mockito 1 (`org.mockito.Matchers`, `org.mockito.runners.MockitoJUnitRunner`, `@InjectMocks`) | the three tests | JUnit 5 (`@ExtendWith`, `@BeforeEach`) and Mockito 5 |

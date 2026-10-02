@@ -324,6 +324,20 @@ Three things are worth knowing about how this behaves:
   user to accept or refuse, and an outage lets the address through marked unverified. Locally the
   stub service offers a correction for most addresses, so expect to be asked.
 
+## Order activity report
+
+`/Report.action` (navigation: **Order activity**, role `INT_VIEW_ORDER`) lists every customer with
+their orders counted by state, the age of the oldest open order and the most recent order placed,
+and offers the same rows as a CSV download. It is a read-only page over the existing services.
+
+It is also the modernisation showcase. `ReportAction`, `OrderActivityServiceImpl`,
+`ActivityReport`, `ActivityReportLine` and their tests are written in deliberately pre-Java 9
+idioms - an anonymous comparator, a `switch` with fall-through, a hand-written value class,
+`instanceof` plus cast, `Calendar` arithmetic, `StringBuffer`, JUnit 4 and Mockito 1 - so a Java 21
+upgrade has one small, self-contained feature to rewrite and the before/after is easy to show. The
+idiom-by-idiom list is in
+[TECH_STACK.md](TECH_STACK.md#modernisation-showcase-the-order-activity-report).
+
 ## One schema, two consumers
 
 `ams-common/AssetManagementSharedServices/src/main/resources/db` is the schema, and both the tests

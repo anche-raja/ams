@@ -145,6 +145,7 @@
 
   <include file="struts-health.xml"/>
   <include file="struts-install.xml"/>
+  <include file="struts-report.xml"/>
   <include file="struts-error.xml"/>
 
 </struts>
