@@ -3,6 +3,8 @@ package org.example.am.shared.dao.scheduling;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import javax.sql.DataSource;
+
 import org.example.am.shared.helper.AbstractBaseTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +39,7 @@ public class TimeslotSchedulingDAOTest extends AbstractBaseTest {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    public void setDataSource(final jakarta.sql.DataSource dataSource) {
+    public void setDataSource(final DataSource dataSource) {
         this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
