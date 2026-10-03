@@ -33,6 +33,7 @@
     <servlet-api.version>6.0.0</servlet-api.version>
     <jstl.version>3.0.1</jstl.version>
     <jakarta-annotation.version>2.1.1</jakarta-annotation.version>
+    <jakarta-sql.version>3.0.1</jakarta-sql.version>
 
     <ojdbc8.version>12.2.0.1</ojdbc8.version>
 
@@ -213,6 +214,12 @@
         <groupId>jakarta.annotation</groupId>
         <artifactId>jakarta.annotation-api</artifactId>
         <version>${jakarta-annotation.version}</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>jakarta.sql</groupId>
+        <artifactId>jakarta.sql-api</artifactId>
+        <version>${jakarta-sql.version}</version>
         <scope>provided</scope>
       </dependency>
 
