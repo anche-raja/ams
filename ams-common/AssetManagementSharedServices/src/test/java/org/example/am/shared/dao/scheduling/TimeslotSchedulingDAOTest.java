@@ -37,7 +37,7 @@ public class TimeslotSchedulingDAOTest extends AbstractBaseTest {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    public void setDataSource(final javax.sql.DataSource dataSource) {
+    public void setDataSource(final jakarta.sql.DataSource dataSource) {
         this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
