@@ -37,7 +37,7 @@
           <defaultLibBundleDir>lib</defaultLibBundleDir>
           <addClasspath>true</addClasspath>
           <generateApplicationXml>true</generateApplicationXml>
-          <displayName>AMS Internal Asset Management</displayName>
+          <displayName>Asset Management System</displayName>
           <modules>
             <webModule>
               <groupId>com.example.ams</groupId>

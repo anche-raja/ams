@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-# AMS Internal Asset Management
+# Asset Management System
 #
 # Deploys the WAR directly rather than the EAR. The EAR module is still built - it is how the
 # application was installed into a shared application server before this - but a container runs one

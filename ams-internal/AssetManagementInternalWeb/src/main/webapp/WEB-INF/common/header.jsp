@@ -6,7 +6,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title><c:out value="${param.pageTitle}"/> - Internal Asset Management</title>
+  <title><c:out value="${param.pageTitle}"/> - Asset Management System</title>
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/main.css"/>
   <%--
     Two separate tokens, deliberately.
@@ -33,7 +33,7 @@
 
 <header class="ams-header">
   <a class="ams-brand" href="${pageContext.request.contextPath}/Home.action">
-    Internal Asset Management
+    Asset Management System
   </a>
   <div class="ams-header-right">
     <%--

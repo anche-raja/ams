@@ -1,4 +1,4 @@
-# AMS Internal Asset Management
+# Asset Management System
 
 A legacy-style Java EE / Spring / Struts 2 hybrid web application, packaged as a WAR (and an EAR)
 and deployed on Apache Tomcat 9. Not a Spring Boot application: there is no embedded server and no

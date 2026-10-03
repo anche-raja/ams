@@ -52,12 +52,12 @@ public class ApplicationVersionListener implements ServletContextListener {
         final String descriptor = version + " (build " + buildNumber + ")";
 
         event.getServletContext().setAttribute(CONTEXT_ATTRIBUTE_VERSION, descriptor);
-        VERSION_LOGGER.info("AMS Internal Asset Management starting: {}", descriptor);
+        VERSION_LOGGER.info("Asset Management System starting: {}", descriptor);
     }
 
     @Override
     public void contextDestroyed(final ServletContextEvent event) {
-        VERSION_LOGGER.info("AMS Internal Asset Management stopping");
+        VERSION_LOGGER.info("Asset Management System stopping");
     }
 
     private static void closeQuietly(final InputStream stream) {

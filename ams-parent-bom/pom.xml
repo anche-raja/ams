@@ -9,7 +9,7 @@
   <version>1.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>AMS Parent BOM</name>
-  <description>Parent POM and dependency BOM for the AMS Internal Asset Management platform.</description>
+  <description>Parent POM and dependency BOM for the Asset Management System platform.</description>
 
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
