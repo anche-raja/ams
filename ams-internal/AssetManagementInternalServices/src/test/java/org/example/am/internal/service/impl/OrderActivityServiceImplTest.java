@@ -1,11 +1,11 @@
 package org.example.am.internal.service.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -22,18 +22,18 @@ import org.example.am.shared.domain.OrderStatusType;
 import org.example.am.shared.service.CalendarService;
 import org.example.am.shared.service.CustomerSearchService;
 import org.example.am.shared.service.OrderService;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
  * The report is a fold over every customer's orders, so the cases that matter are the counting
  * rules: which statuses count as open, how the oldest open order is aged, and the sort order.
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class OrderActivityServiceImplTest {
 
     private static final long NORTHWIND = 1001L;
@@ -53,7 +53,7 @@ public class OrderActivityServiceImplTest {
     @InjectMocks
     private OrderActivityServiceImpl service;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(customerSearchService.listAll(anyInt())).thenReturn(Arrays.asList(
                 customer(NORTHWIND, "Northwind Coffee Roasters", "NW-100", true),
