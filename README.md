@@ -170,6 +170,7 @@ same WAR runs on both instances, and both can be up at once:
 ./tomcat-mac.sh jdk8 stop
 ./tomcat-mac.sh jdk8 restart
 ./tomcat-mac.sh jdk8 status
+./tomcat-mac.sh jdk8 reset       # start again on a fresh, reseeded H2 database
 ./tomcat-mac.sh jdk8 logs        # follow logs/console.log
 ```
 
@@ -363,6 +364,14 @@ less. The scripts clear only future slots nobody holds, so re-applying never str
 The original seed (`07_seed/17` to `32`) is deliberately sparse: every row in it is load-bearing
 for some DAO test, so it is not safe to add to and not much to look at. Two later files exist for
 driving the portal instead.
+
+On the embedded H2 stack the same four customers come from
+`ams-common/.../db/seed/demo/37_demo_order_activity.sql`: the same ids, names and account numbers
+as the Oracle file below, with thirteen orders spread over every state the order activity report
+distinguishes and submitted dates relative to today, so the ages on the report stay plausible. The
+demonstration tier runs only on an empty database, so an instance that already has one keeps its
+old rows until it is reset: `./tomcat-mac.sh jdk8 reset` stops it, deletes its H2 file and starts it
+again on a freshly built and seeded schema.
 
 `07_seed/38_AMS_DEMO_LIFECYCLE.sql` adds four customers, each parked at a different point in the
 lifecycle:

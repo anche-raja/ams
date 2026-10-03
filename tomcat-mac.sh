@@ -5,6 +5,8 @@
 #   ./tomcat-mac.sh jdk8  deploy      stop, copy in the freshly built WAR, start        (port 8080)
 #   ./tomcat-mac.sh jdk21 deploy                                                         (port 8081)
 #   ./tomcat-mac.sh <jdk> start | stop | restart | status
+#   ./tomcat-mac.sh <jdk> reset       stop, delete the instance's H2 database, start: the schema and
+#                                     seed are rebuilt, which is how a changed seed is picked up
 #   ./tomcat-mac.sh <jdk> logs        follow the console log (application + Tomcat)
 #
 # Typical cycle:   ./build.sh jdk8 && ./tomcat-mac.sh jdk8 deploy        (or just ./build.sh jdk8 run)
@@ -34,7 +36,7 @@
 # data/ (the H2 file) and logs/ are kept.
 set -euo pipefail
 
-usage() { sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+usage() { sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
 
 TOMCAT_VERSION="${TOMCAT_VERSION:-9.0.122}"
 TOOLS="${AMS_TOOLS:-$HOME/tools}"
@@ -226,6 +228,10 @@ case "$CMD" in
   start)   check_jdk; install_home; running && { echo "already running: $URL"; exit 0; }; install_base; start_server ;;
   stop)    stop_server; echo "==> $JDK_NAME instance stopped" ;;
   restart) check_jdk; install_home; stop_server; install_base; start_server ;;
+  reset)   check_jdk; install_home; stop_server; install_base
+           echo "==> deleting the $JDK_NAME instance's H2 database (rebuilt and reseeded on start)"
+           rm -f "$CATALINA_BASE"/data/ams*.db
+           start_server ;;
   status)  if running; then echo "$JDK_NAME: running on $URL"; else echo "$JDK_NAME: stopped"; fi ;;
   logs)    tail -F "$CATALINA_BASE/logs/console.log" ;;
   *)       usage ;;
