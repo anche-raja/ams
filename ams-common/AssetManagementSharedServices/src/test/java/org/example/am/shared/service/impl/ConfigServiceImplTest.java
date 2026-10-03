@@ -1,13 +1,13 @@
 package org.example.am.shared.service.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.example.am.shared.domain.PropertyType;
 import org.example.am.shared.helper.AbstractBaseTest;
 import org.example.am.shared.service.ConfigService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class ConfigServiceImplTest extends AbstractBaseTest {
