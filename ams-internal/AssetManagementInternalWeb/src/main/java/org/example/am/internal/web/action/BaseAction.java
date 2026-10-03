@@ -5,14 +5,14 @@ import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.struts2.interceptor.ServletRequestAware;
-import org.apache.struts2.interceptor.ServletResponseAware;
+import org.apache.struts2.action.ServletRequestAware;
+import org.apache.struts2.action.ServletResponseAware;
 import org.example.am.internal.security.AmsUser;
 import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.internal.utils.InternalConstants;
@@ -24,8 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import com.opensymphony.xwork2.ActionSupport;
-import com.opensymphony.xwork2.ModelDriven;
+import org.apache.struts2.action.Action;
+import org.apache.struts2.action.ModelDriven;
 
 /**
  * The common ground for every action in the application.
@@ -34,7 +34,7 @@ import com.opensymphony.xwork2.ModelDriven;
  * wrong in isolation: the role check, access to the authenticated user and the customer being
  * worked on, the request-scoped clock, and the non-production banner.</p>
  */
-public abstract class BaseAction extends ActionSupport
+public abstract class BaseAction extends Action
         implements ServletRequestAware, ServletResponseAware, ModelDriven<Object> {
 
     private static final long serialVersionUID = 1L;
@@ -51,13 +51,15 @@ public abstract class BaseAction extends ActionSupport
     private transient ConfigService configService;
 
     @Override
-    public void setServletRequest(final HttpServletRequest servletRequest) {
+    public BaseAction withServletRequest(final HttpServletRequest servletRequest) {
         this.servletRequest = servletRequest;
+        return this;
     }
 
     @Override
-    public void setServletResponse(final HttpServletResponse servletResponse) {
+    public BaseAction withServletResponse(final HttpServletResponse servletResponse) {
         this.servletResponse = servletResponse;
+        return this;
     }
 
     protected HttpServletRequest getServletRequest() {

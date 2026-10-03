@@ -16,11 +16,11 @@ import org.example.am.shared.service.ConfigService;
 import org.example.am.shared.service.RestService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.opensymphony.xwork2.Action;
-import com.opensymphony.xwork2.ActionInvocation;
-import com.opensymphony.xwork2.ModelDriven;
-import com.opensymphony.xwork2.interceptor.AbstractInterceptor;
-import com.opensymphony.xwork2.interceptor.PreResultListener;
+import org.apache.struts2.action.Action;
+import org.apache.struts2.action.ActionInvocation;
+import org.apache.struts2.action.ModelDriven;
+import org.apache.struts2.interceptor.Interceptor;
+import org.apache.struts2.interceptor.PreResultListener;
 
 /**
  * Validates the site address as the install order's first step is saved.
@@ -40,7 +40,7 @@ import com.opensymphony.xwork2.interceptor.PreResultListener;
  * pre-result listener runs after the action but before the result is chosen, which is the only
  * point at which the outcome can still be swapped.</p>
  */
-public class AddressValidationInterceptor extends AbstractInterceptor {
+public class AddressValidationInterceptor implements Interceptor {
 
     private static final long serialVersionUID = 1L;
 
@@ -51,6 +51,11 @@ public class AddressValidationInterceptor extends AbstractInterceptor {
 
     @Autowired
     private transient ConfigService configService;
+
+    @Override
+    public void init() {
+        // Nothing to initialize
+    }
 
     @Override
     public String intercept(final ActionInvocation invocation) throws Exception {
@@ -65,6 +70,11 @@ public class AddressValidationInterceptor extends AbstractInterceptor {
             }
         });
         return invocation.invoke();
+    }
+
+    @Override
+    public void destroy() {
+        // Nothing to clean up
     }
 
     /**

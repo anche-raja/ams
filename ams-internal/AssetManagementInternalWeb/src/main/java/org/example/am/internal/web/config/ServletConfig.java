@@ -29,10 +29,10 @@ import org.springframework.web.servlet.view.JstlView;
 public class ServletConfig implements WebMvcConfigurer {
 
     /*
-     * @EnableGlobalMethodSecurity is deliberately NOT here. It has to sit alongside the
-     * GlobalMethodSecurityConfiguration subclass it configures, which is GlobalSecurityConfig in
-     * the root context. Adding it here either fails to reach that subclass - the application then
-     * refuses to start - or builds a second, competing method security setup in this context.
+     * @EnableMethodSecurity is deliberately NOT here. It has to sit alongside the
+     * authentication manager it configures, which is GlobalSecurityConfig in the root context.
+     * Adding it here either fails to reach that bean - the application then refuses to start -
+     * or builds a second, competing method security setup in this context.
      */
 
     private static final int STATIC_RESOURCE_CACHE_SECONDS = 600;

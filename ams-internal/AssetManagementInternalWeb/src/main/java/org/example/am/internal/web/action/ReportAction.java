@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import com.opensymphony.xwork2.Action;
+import org.apache.struts2.action.Action;
 
 /**
  * The order activity report: one row per customer, and the same rows as a CSV download.

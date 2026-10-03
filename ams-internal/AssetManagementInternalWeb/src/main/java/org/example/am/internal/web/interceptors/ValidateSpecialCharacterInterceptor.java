@@ -8,10 +8,10 @@ import org.apache.logging.log4j.Logger;
 import org.apache.struts2.ServletActionContext;
 import org.example.am.internal.utils.InternalConstants;
 
-import com.opensymphony.xwork2.Action;
-import com.opensymphony.xwork2.ActionInvocation;
-import com.opensymphony.xwork2.ActionSupport;
-import com.opensymphony.xwork2.interceptor.AbstractInterceptor;
+import org.apache.struts2.action.Action;
+import org.apache.struts2.action.ActionInvocation;
+import org.apache.struts2.action.ActionSupport;
+import org.apache.struts2.interceptor.Interceptor;
 
 /**
  * Rejects any request parameter containing a character outside the accepted set.
@@ -23,7 +23,7 @@ import com.opensymphony.xwork2.interceptor.AbstractInterceptor;
  * <p>Returning {@code input} rather than throwing keeps the user on the form with an error, which
  * is the right outcome for the common case - somebody pasting a curly quote out of a document.</p>
  */
-public class ValidateSpecialCharacterInterceptor extends AbstractInterceptor {
+public class ValidateSpecialCharacterInterceptor implements Interceptor {
 
     private static final long serialVersionUID = 1L;
 
@@ -41,6 +41,11 @@ public class ValidateSpecialCharacterInterceptor extends AbstractInterceptor {
     private static final Pattern BRACKETED = Pattern.compile("\\[[^\\]]*\\]");
 
     private static final Pattern INDEX = Pattern.compile(InternalConstants.PARAMETER_INDEX);
+
+    @Override
+    public void init() {
+        // Nothing to initialize
+    }
 
     @Override
     public String intercept(final ActionInvocation invocation) throws Exception {
@@ -62,6 +67,11 @@ public class ValidateSpecialCharacterInterceptor extends AbstractInterceptor {
             }
         }
         return invocation.invoke();
+    }
+
+    @Override
+    public void destroy() {
+        // Nothing to clean up
     }
 
     private static boolean isAccepted(final String value) {

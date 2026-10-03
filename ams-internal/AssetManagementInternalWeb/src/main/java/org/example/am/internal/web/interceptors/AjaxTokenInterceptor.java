@@ -1,14 +1,14 @@
 package org.example.am.internal.web.interceptors;
 
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.struts2.ServletActionContext;
 import org.example.am.internal.utils.InternalConstants;
 
-import com.opensymphony.xwork2.ActionInvocation;
-import com.opensymphony.xwork2.interceptor.AbstractInterceptor;
+import org.apache.struts2.interceptor.Interceptor;
+import org.apache.struts2.action.ActionInvocation;
 
 /**
  * Requires the per-session AJAX token on the endpoints the grids post to.
@@ -18,11 +18,16 @@ import com.opensymphony.xwork2.interceptor.AbstractInterceptor;
  * served. Comparison is constant time, so a caller cannot narrow the token down by timing repeated
  * guesses.</p>
  */
-public class AjaxTokenInterceptor extends AbstractInterceptor {
+public class AjaxTokenInterceptor implements Interceptor {
 
     private static final long serialVersionUID = 1L;
 
     private static final Logger LOGGER = LogManager.getLogger(AjaxTokenInterceptor.class);
+
+    @Override
+    public void init() {
+        // Nothing to initialize
+    }
 
     @Override
     public String intercept(final ActionInvocation invocation) throws Exception {
@@ -42,6 +47,11 @@ public class AjaxTokenInterceptor extends AbstractInterceptor {
             return getInvalidTokenResult();
         }
         return invocation.invoke();
+    }
+
+    @Override
+    public void destroy() {
+        // Nothing to clean up
     }
 
     /**

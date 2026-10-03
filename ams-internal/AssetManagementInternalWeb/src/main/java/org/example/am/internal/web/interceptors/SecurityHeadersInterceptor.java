@@ -1,11 +1,11 @@
 package org.example.am.internal.web.interceptors;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.struts2.ServletActionContext;
 
-import com.opensymphony.xwork2.ActionInvocation;
-import com.opensymphony.xwork2.interceptor.AbstractInterceptor;
+import org.apache.struts2.interceptor.Interceptor;
+import org.apache.struts2.action.ActionInvocation;
 
 /**
  * Sets the response security headers on the Struts path.
@@ -16,7 +16,7 @@ import com.opensymphony.xwork2.interceptor.AbstractInterceptor;
  * clickjacking, sniffing and framing protection. Setting them twice costs nothing; missing them
  * once does not.</p>
  */
-public class SecurityHeadersInterceptor extends AbstractInterceptor {
+public class SecurityHeadersInterceptor implements Interceptor {
 
     private static final long serialVersionUID = 1L;
 
@@ -27,6 +27,11 @@ public class SecurityHeadersInterceptor extends AbstractInterceptor {
             + "img-src 'self' data:; "
             + "frame-ancestors 'self'; "
             + "form-action 'self'";
+
+    @Override
+    public void init() {
+        // Nothing to initialize
+    }
 
     @Override
     public String intercept(final ActionInvocation invocation) throws Exception {
@@ -43,5 +48,10 @@ public class SecurityHeadersInterceptor extends AbstractInterceptor {
             response.setHeader("Content-Security-Policy", CONTENT_SECURITY_POLICY);
         }
         return invocation.invoke();
+    }
+
+    @Override
+    public void destroy() {
+        // Nothing to clean up
     }
 }
