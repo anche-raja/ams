@@ -72,10 +72,6 @@
       <groupId>jakarta.servlet</groupId>
       <artifactId>jakarta.servlet-api</artifactId>
     </dependency>
-    <dependency>
-      <groupId>jakarta.sql</groupId>
-      <artifactId>jakarta.sql-api</artifactId>
-    </dependency>
 
     <!-- test -->
     <dependency>
