@@ -59,7 +59,7 @@ public class TimeslotSchedulingDAOTest extends AbstractBaseTest {
         final SchedulingResult result = dao.reserve(SLOT_FULL, ENTITY_ID, "TECHLINE", null, TEST_USER);
 
         assertEquals(SchedulingStatus.NO_CAPACITY, result.getStatus());
-        assertEquals("a refused booking must change nothing", before, reservedCount(SLOT_FULL));
+        assertEquals(before, reservedCount(SLOT_FULL), "a refused booking must change nothing");
         assertEquals(0, heldRows(SLOT_FULL, "TECHLINE", ENTITY_ID));
     }
 
@@ -104,8 +104,8 @@ public class TimeslotSchedulingDAOTest extends AbstractBaseTest {
 
         assertEquals(SchedulingStatus.OK, result.getStatus());
         assertEquals(afterReserve - 1, reservedCount(SLOT_WITH_ROOM));
-        assertEquals("the ledger row must be released, not deleted",
-                0, heldRows(SLOT_WITH_ROOM, "TECHLINE", ENTITY_ID));
+        assertEquals(0, heldRows(SLOT_WITH_ROOM, "TECHLINE", ENTITY_ID),
+                "the ledger row must be released, not deleted");
     }
 
     /**
@@ -141,7 +141,7 @@ public class TimeslotSchedulingDAOTest extends AbstractBaseTest {
         final SchedulingResult result = dao.reserve(9703L, 999999L, "INSTALL", null, TEST_USER);
 
         assertEquals(SchedulingStatus.NO_INSTALLATION, result.getStatus());
-        assertEquals("the place must not be stranded", before, reservedCount(9703L));
+        assertEquals(before, reservedCount(9703L), "the place must not be stranded");
         assertEquals(0, heldRows(9703L, "INSTALL", 999999L));
     }
 
@@ -166,7 +166,7 @@ public class TimeslotSchedulingDAOTest extends AbstractBaseTest {
         final SchedulingResult result = dao.reserve(9705L, 6002L, "SHIP", null, TEST_USER);
 
         assertEquals(SchedulingStatus.OK, result.getStatus());
-        assertEquals("SHIP must not schedule the order", before, orderStatus(6002L));
+        assertEquals(before, orderStatus(6002L), "SHIP must not schedule the order");
     }
 
     @Test
@@ -178,9 +178,9 @@ public class TimeslotSchedulingDAOTest extends AbstractBaseTest {
                     + "WHERE TIMESLOT_ID = ?", Long.valueOf(SLOT_WITH_ROOM));
             throw new AssertionError("an over-capacity write was accepted");
         } catch (final org.springframework.dao.DataAccessException expected) {
-            assertTrue("expected a constraint violation, got: " + expected.getMessage(),
-                    expected.getMessage().contains("TIMESLOTS_RESERVED_CK")
-                            || expected.getMessage().contains("23513"));
+            assertTrue(expected.getMessage().contains("TIMESLOTS_RESERVED_CK")
+                            || expected.getMessage().contains("23513"),
+                    "expected a constraint violation, got: " + expected.getMessage());
         }
     }
 
