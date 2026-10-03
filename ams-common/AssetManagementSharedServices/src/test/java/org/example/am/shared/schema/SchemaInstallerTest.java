@@ -78,7 +78,7 @@ public class SchemaInstallerTest {
                         "UPDATE AMS_TIMESLOTS SET RESERVED_COUNT = 2 WHERE TIMESLOT_ID = 990001");
                 throw new AssertionError("an over-capacity write was accepted");
             } catch (final java.sql.SQLException expected) {
-                assertEquals("H2 check-constraint violation", 23513, expected.getErrorCode());
+                assertEquals(23513, expected.getErrorCode(), "H2 check-constraint violation");
             }
         }
     }
