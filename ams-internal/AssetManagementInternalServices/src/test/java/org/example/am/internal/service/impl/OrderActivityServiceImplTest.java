@@ -87,7 +87,7 @@ public class OrderActivityServiceImplTest {
 
         // NW-1 (5 days) is older than NW-3 (2 days); the completed and cancelled ones do not count.
         assertEquals(Integer.valueOf(5), line(report, NORTHWIND).getOldestOpenOrderAgeDays());
-        assertNull("nothing open, so no age", line(report, BEACON).getOldestOpenOrderAgeDays());
+        assertNull(line(report, BEACON).getOldestOpenOrderAgeDays(), "nothing open, so no age");
     }
 
     @Test
