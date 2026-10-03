@@ -1,15 +1,15 @@
 package org.example.am.shared.schema;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
 import org.h2.jdbcx.JdbcDataSource;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * The acceptance gate for the schema, moved into the build.
@@ -23,7 +23,7 @@ public class SchemaInstallerTest {
     /** A distinct in-memory database per test, so ordering between tests cannot matter. */
     private JdbcDataSource dataSource;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         dataSource = new JdbcDataSource();
         dataSource.setURL("jdbc:h2:mem:schema-" + System.nanoTime()

@@ -1,15 +1,15 @@
 package org.example.am.internal.web.action;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.example.am.internal.utils.InternalConstants;
 import org.example.am.internal.web.model.InstallOrderModel;
 import org.example.am.shared.domain.Customer;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 /**
@@ -43,7 +43,7 @@ public class CustomerSwitchSessionTest {
     private TestAction action;
     private MockHttpServletRequest request;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         request = new MockHttpServletRequest();
         action = new TestAction();

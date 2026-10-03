@@ -1,7 +1,7 @@
 package org.example.am.internal.web.config;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -10,8 +10,8 @@ import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -27,7 +27,7 @@ public class WebXmlTest {
 
     private static Document webXml;
 
-    @BeforeClass
+    @BeforeAll
     public static void parse() throws Exception {
         final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setValidating(false);
@@ -150,7 +150,7 @@ public class WebXmlTest {
                     mapping.getElementsByTagName("url-pattern").item(0).getTextContent().trim();
             if ("staticContentCacheFilter".equals(name) || "etagFilter".equals(name)) {
                 staticMappings++;
-                assertTrue(name + " must not be mapped to everything", !"/*".equals(pattern));
+                assertTrue(!"/*".equals(pattern), name + " must not be mapped to everything");
             }
         }
         assertEquals(8, staticMappings);

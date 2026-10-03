@@ -1,8 +1,8 @@
 package org.example.am.internal.service.dao.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -11,7 +11,7 @@ import java.util.List;
 import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.internal.service.AbstractInternalTest;
 import org.example.am.internal.service.dao.AmsUserDetailsDAO;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AmsUserDetailsDAOImplTest extends AbstractInternalTest {

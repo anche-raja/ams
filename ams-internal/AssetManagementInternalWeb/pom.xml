@@ -12,7 +12,7 @@
   <artifactId>AssetManagementInternalWeb</artifactId>
   <packaging>war</packaging>
   <name>Asset Management Internal Web</name>
-  <description>The deployable web application: Struts 2 for the functional endpoints, Spring MVC for the global error pages. Deployed as a WAR on Apache Tomcat 9.</description>
+  <description>The deployable web application: Struts 2 for the functional endpoints, Spring MVC for the global error pages. Deployed as a WAR on Apache Tomcat 10.1 with Jakarta EE 10.</description>
 
   <dependencies>
     <dependency>
@@ -111,15 +111,6 @@
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
-    <dependency>
-      <groupId>net.sf.json-lib</groupId>
-      <artifactId>json-lib</artifactId>
-      <classifier>jdk15</classifier>
-    </dependency>
-    <dependency>
-      <groupId>net.sf.ezmorph</groupId>
-      <artifactId>ezmorph</artifactId>
-    </dependency>
 
     <!-- Logging: the WAR is where the Log4j2 implementation is bound. -->
     <dependency>
@@ -132,22 +123,26 @@
     </dependency>
 
     <!--
-      Container provided. Tomcat 9 supplies the Servlet, JSP and EL APIs and the JSR-250 annotations,
-      so those stay at provided scope. It does not ship JSTL, so the JSTL API and implementation
+      Container provided. Tomcat 10.1 supplies the Jakarta Servlet, JSP and EL APIs and the Jakarta Annotations,
+      so those stay at provided scope. It does not ship JSTL, so the Jakarta JSTL API and implementation
       travel in WEB-INF/lib.
     -->
     <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>jstl</groupId>
-      <artifactId>jstl</artifactId>
+      <groupId>jakarta.servlet.jsp.jstl</groupId>
+      <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>javax.annotation</groupId>
-      <artifactId>javax.annotation-api</artifactId>
+      <groupId>org.glassfish.web</groupId>
+      <artifactId>jakarta.servlet.jsp.jstl</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
       <scope>provided</scope>
     </dependency>
 
@@ -228,7 +223,7 @@
   </build>
 
   <!--
-    There is no run profile here. The WAR runs on an Apache Tomcat 9 that tomcat-mac.sh (macOS) or
+    There is no run profile here. The WAR runs on an Apache Tomcat 10.1 that tomcat-mac.sh (macOS) or
     tomcat.sh (Windows) installs and configures outside the build - see README "Running". The only
     thing the server needs from the Maven repository is the H2 driver, which those scripts copy from
     the local repository into the server's lib directory: Tomcat's connection pool loads the driver,

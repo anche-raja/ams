@@ -1,10 +1,10 @@
 package org.example.am.internal.web.action;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -21,8 +21,8 @@ import java.util.Map;
 import org.example.am.internal.service.OrderActivityService;
 import org.example.am.internal.service.report.ActivityReport;
 import org.example.am.internal.service.report.ActivityReportLine;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -38,7 +38,7 @@ public class ReportActionTest {
     private MockHttpServletRequest request;
     private OrderActivityService orderActivityService;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         request = new MockHttpServletRequest();
         orderActivityService = mock(OrderActivityService.class);
@@ -73,7 +73,7 @@ public class ReportActionTest {
 
         final List<String> lines = readLines(action.getCsvStream());
         assertEquals(4, lines.size());
-        assertTrue(lines.get(0), lines.get(0).startsWith("# 2 customers"));
+        assertTrue(lines.get(0).startsWith("# 2 customers"));
         assertEquals("Customer,Account,Ordering,Open orders,Scheduled,Completed,Cancelled,"
                 + "Oldest open (days),Latest order,Latest submitted", lines.get(1));
         assertEquals("order-activity-20260902.csv", action.getCsvFileName());
