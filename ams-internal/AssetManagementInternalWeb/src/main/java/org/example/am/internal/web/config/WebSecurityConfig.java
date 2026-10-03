@@ -19,8 +19,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
@@ -37,7 +37,7 @@ import org.springframework.security.web.header.writers.StaticHeadersWriter;
  */
 @Configuration
 @EnableWebSecurity
-public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+public class WebSecurityConfig {
 
     private static final Logger LOGGER = LogManager.getLogger(WebSecurityConfig.class);
 
@@ -74,40 +74,38 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private Environment environment;
 
-    @Override
-    protected void configure(final HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
         http
-            .csrf()
-                .requireCsrfProtectionMatcher(csrfTokenRequestMatcher())
-                .and()
+            .csrf(csrf -> csrf
+                .requireCsrfProtectionMatcher(csrfTokenRequestMatcher()))
             .addFilter(preAuthenticatedProcessingFilter())
-            .authorizeRequests()
-                .antMatchers(PERMITTED_PATHS).permitAll()
+            .authorizeHttpRequests(authz -> authz
+                .requestMatchers(PERMITTED_PATHS).permitAll()
                 // Everything else needs an authenticated user. Which actions that user may then
                 // perform is decided per action by the role checks in BaseAction, because the role
                 // model is far too fine grained to express as URL patterns.
-                .anyRequest().hasAuthority(SecurityRoleType.ROLE_USER)
-                .and()
-            .httpBasic()
+                .anyRequest().hasAuthority(SecurityRoleType.ROLE_USER))
+            .httpBasic(basic -> basic
                 // 403 rather than a redirect: there is no login page to send anyone to.
-                .authenticationEntryPoint(new Http403ForbiddenEntryPoint())
-                .and()
-            .sessionManagement()
+                .authenticationEntryPoint(new Http403ForbiddenEntryPoint()))
+            .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                .sessionFixation().migrateSession()
                 .maximumSessions(MAX_CONCURRENT_SESSIONS)
-                .expiredUrl("/ams/invalidSessionError")
-                .and()
-                .and()
-            .headers()
-                .frameOptions().sameOrigin()
-                .xssProtection().and()
-                .contentTypeOptions().and()
+                .expiredUrl("/ams/invalidSessionError"))
+            .headers(headers -> headers
+                .frameOptions(frameOptions -> frameOptions.sameOrigin())
+                .xssProtection()
+                .contentTypeOptions()
                 .httpStrictTransportSecurity()
                     .includeSubDomains(true)
-                    .and()
-                .cacheControl().and()
+                .and()
+                .cacheControl()
+                .and()
                 .addHeaderWriter(new StaticHeadersWriter("Content-Security-Policy",
-                        CONTENT_SECURITY_POLICY));
+                        CONTENT_SECURITY_POLICY)));
+        return http.build();
     }
 
     /**
@@ -159,7 +157,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         return new RemoveRolesPrefixPostProcessor();
     }
 
-    @Override
     @Bean
     public AuthenticationManager authenticationManagerBean() throws Exception {
         return new ProviderManager(Arrays.asList(
