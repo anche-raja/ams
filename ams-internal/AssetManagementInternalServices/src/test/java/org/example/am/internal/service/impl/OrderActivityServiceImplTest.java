@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -55,17 +56,17 @@ public class OrderActivityServiceImplTest {
 
     @BeforeEach
     public void setUp() {
-        when(customerSearchService.listAll(anyInt())).thenReturn(Arrays.asList(
+        lenient().when(customerSearchService.listAll(anyInt())).thenReturn(Arrays.asList(
                 customer(NORTHWIND, "Northwind Coffee Roasters", "NW-100", true),
                 customer(BEACON, "Beacon Hill Physio", "BH-200", false)));
-        when(orderService.getOrdersForCustomer(NORTHWIND)).thenReturn(Arrays.asList(
+        lenient().when(orderService.getOrdersForCustomer(NORTHWIND)).thenReturn(Arrays.asList(
                 order("NW-1", OrderStatusType.SUBMITTED, daysBefore(AS_OF, 5)),
                 order("NW-2", OrderStatusType.COMPLETED, daysBefore(AS_OF, 40)),
                 order("NW-3", OrderStatusType.SCHEDULED, daysBefore(AS_OF, 2)),
                 order("NW-4", OrderStatusType.CANCELLED, daysBefore(AS_OF, 10))));
-        when(orderService.getOrdersForCustomer(BEACON))
+        lenient().when(orderService.getOrdersForCustomer(BEACON))
                 .thenReturn(Collections.<Order>emptyList());
-        when(calendarService.addBusinessDays(any(Date.class), anyInt()))
+        lenient().when(calendarService.addBusinessDays(any(Date.class), anyInt()))
                 .thenReturn(at(2026, Calendar.OCTOBER, 7));
     }
 
@@ -87,7 +88,7 @@ public class OrderActivityServiceImplTest {
 
         // NW-1 (5 days) is older than NW-3 (2 days); the completed and cancelled ones do not count.
         assertEquals(Integer.valueOf(5), line(report, NORTHWIND).getOldestOpenOrderAgeDays());
-        assertNull("nothing open, so no age", line(report, BEACON).getOldestOpenOrderAgeDays());
+        assertNull(line(report, BEACON).getOldestOpenOrderAgeDays(), "nothing open, so no age");
     }
 
     @Test
