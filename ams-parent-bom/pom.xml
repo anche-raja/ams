@@ -48,7 +48,7 @@
     <h2.version>1.3.176</h2.version>
     <aspectj.version>1.9.22</aspectj.version>
     <junit.version>5.10.0</junit.version>
-    <mockito.version>5.7.1</mockito.version>
+    <mockito.version>5.11.0</mockito.version>
 
     <jacoco.plugin.version>0.8.11</jacoco.plugin.version>
 
