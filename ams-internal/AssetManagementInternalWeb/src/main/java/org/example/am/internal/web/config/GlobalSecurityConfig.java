@@ -5,7 +5,6 @@ import org.example.am.internal.web.security.WebSealPreAuthenticatedAuthenticatio
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 /**
@@ -18,6 +17,11 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
  * annotations to honour. This configuration is imported by {@code RootConfig}, so it lives in the
  * root context; the annotation on the {@code DispatcherServlet} context could not reach it, and the
  * application would fail to start with "EnableMethodSecurity is required".</p>
+ *
+ * <p>In Spring Security 6, the {@code configure(AuthenticationManagerBuilder)} method is no longer
+ * needed. The authentication provider is exposed as a {@code @Bean} here and explicitly registered
+ * with the {@code AuthenticationManager} in {@link WebSecurityConfig#authenticationManagerBean()},
+ * which creates a {@code ProviderManager} with this provider.</p>
  */
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true, jsr250Enabled = true, securedEnabled = true)
