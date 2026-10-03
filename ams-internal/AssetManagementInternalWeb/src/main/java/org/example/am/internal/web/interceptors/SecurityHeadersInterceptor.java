@@ -1,6 +1,6 @@
 package org.example.am.internal.web.interceptors;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.struts2.ServletActionContext;
 

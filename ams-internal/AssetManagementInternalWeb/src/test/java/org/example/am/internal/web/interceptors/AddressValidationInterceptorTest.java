@@ -1,13 +1,14 @@
 package org.example.am.internal.web.interceptors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,12 +24,12 @@ import org.example.am.shared.model.address.ValidatedAddress;
 import org.example.am.shared.model.address.ValidatedQualityType;
 import org.example.am.shared.service.ConfigService;
 import org.example.am.shared.service.RestService;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.opensymphony.xwork2.Action;
 import com.opensymphony.xwork2.ActionInvocation;
@@ -47,7 +48,7 @@ import com.opensymphony.xwork2.interceptor.PreResultListener;
  * <p>These tests therefore assert the mechanism, not just the verdict: that the work is handed to
  * a {@link PreResultListener}, and that the listener replaces the result code.</p>
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class AddressValidationInterceptorTest {
 
     /** Minimal model-driven action; the interceptor only needs {@code getModel}. */
@@ -77,7 +78,7 @@ public class AddressValidationInterceptorTest {
     private AddressValidationInterceptor interceptor;
     private InstallOrderModel model;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         interceptor = new AddressValidationInterceptor();
         interceptor.setRestService(restService);
@@ -89,7 +90,7 @@ public class AddressValidationInterceptorTest {
         when(invocation.getAction()).thenReturn(new StubAction(model));
         when(invocation.invoke()).thenReturn(Action.SUCCESS);
         when(configService.getBoolean(eq(PropertyType.ADDRESS_VALIDATION_ENABLED),
-                org.mockito.Matchers.anyBoolean())).thenReturn(Boolean.TRUE);
+                anyBoolean())).thenReturn(Boolean.TRUE);
     }
 
     private static Address completeAddress() {
@@ -164,8 +165,8 @@ public class AddressValidationInterceptorTest {
         runAndCaptureListener().beforeResult(invocation, Action.SUCCESS);
 
         verify(invocation).setResultCode(InternalConstants.RESULT_AV_SUGGESTION);
-        assertNotNull("the suggestion has to reach the model or the page has nothing to show",
-                model.getSuggestedAddress());
+        assertNotNull(model.getSuggestedAddress(),
+                "the suggestion has to reach the model or the page has nothing to show");
         assertEquals("100 Main Street", model.getSuggestedAddress().getAddressLine1());
     }
 
@@ -189,8 +190,8 @@ public class AddressValidationInterceptorTest {
 
         verify(invocation).setResultCode(InternalConstants.RESULT_AV_ERROR);
         assertFalse(model.getSiteAddress().isValidated());
-        assertTrue("the site page needs to know to offer continuing unverified",
-                model.isAddressCheckUnavailable());
+        assertTrue(model.isAddressCheckUnavailable(),
+                "the site page needs to know to offer continuing unverified");
     }
 
     /**
@@ -238,7 +239,7 @@ public class AddressValidationInterceptorTest {
     @Test
     public void theCheckIsSkippedWhenTheFeatureIsSwitchedOff() throws Exception {
         when(configService.getBoolean(eq(PropertyType.ADDRESS_VALIDATION_ENABLED),
-                org.mockito.Matchers.anyBoolean())).thenReturn(Boolean.FALSE);
+                anyBoolean())).thenReturn(Boolean.FALSE);
 
         runAndCaptureListener().beforeResult(invocation, Action.SUCCESS);
 

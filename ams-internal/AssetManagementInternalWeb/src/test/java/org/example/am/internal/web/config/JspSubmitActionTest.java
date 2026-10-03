@@ -1,7 +1,7 @@
 package org.example.am.internal.web.config;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,13 +16,13 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Asserts that no JSP submits a form with {@code <s:submit action="...">}.
  *
  * <p>That tag renders {@code name="action:Something"}, which Struts only acts on when
- * {@code struts.mapper.action.prefix.enabled} is true. It is false by default in Struts 6 - and
+ * {@code struts.mapper.action.prefix.enabled} is true. It is false by default in Struts 7 - and
  * deliberately left false here, for the same reason dynamic method invocation is off: it lets a
  * request name the action it wants to reach.</p>
  *
@@ -82,7 +82,7 @@ public class JspSubmitActionTest {
         final Path strutsXml = Paths.get(new File("").getAbsolutePath(),
                 "src", "main", "resources", "struts.xml");
         final String body = new String(Files.readAllBytes(strutsXml), StandardCharsets.UTF_8);
-        assertTrue("struts.mapper.action.prefix.enabled must not be turned on",
-                !ACTION_PREFIX_ENABLED.matcher(body).find());
+        assertTrue(!ACTION_PREFIX_ENABLED.matcher(body).find(),
+                "struts.mapper.action.prefix.enabled must not be turned on");
     }
 }
