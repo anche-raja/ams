@@ -3,8 +3,10 @@ package org.example.am.internal.web.action;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSession;
 
+import org.apache.struts2.action.Action;
+import org.apache.struts2.interceptor.parameter.StrutsParameter;
 import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.internal.utils.InternalConstants;
 import org.example.am.shared.domain.Customer;
@@ -16,8 +18,6 @@ import org.example.am.shared.utils.CommonConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
-
-import com.opensymphony.xwork2.Action;
 
 /**
  * The home page: the customers an operator can order for, and the orders already placed for the
@@ -104,6 +104,7 @@ public class HomeAction extends BaseAction {
         return selectedCustomerId;
     }
 
+    @StrutsParameter
     public void setSelectedCustomerId(final Long selectedCustomerId) {
         this.selectedCustomerId = selectedCustomerId;
     }

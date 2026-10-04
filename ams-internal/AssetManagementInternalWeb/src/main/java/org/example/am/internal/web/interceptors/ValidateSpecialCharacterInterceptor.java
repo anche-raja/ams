@@ -8,10 +8,10 @@ import org.apache.logging.log4j.Logger;
 import org.apache.struts2.ServletActionContext;
 import org.example.am.internal.utils.InternalConstants;
 
-import com.opensymphony.xwork2.Action;
-import com.opensymphony.xwork2.ActionInvocation;
-import com.opensymphony.xwork2.ActionSupport;
-import com.opensymphony.xwork2.interceptor.AbstractInterceptor;
+import org.apache.struts2.action.Action;
+import org.apache.struts2.ActionInvocation;
+import org.apache.struts2.ActionSupport;
+import org.apache.struts2.interceptor.AbstractInterceptor;
 
 /**
  * Rejects any request parameter containing a character outside the accepted set.
