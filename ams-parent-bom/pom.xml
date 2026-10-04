@@ -12,28 +12,36 @@
   <description>Parent POM and dependency BOM for the Asset Management System platform.</description>
 
   <properties>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
     <ams.version>1.0.0-SNAPSHOT</ams.version>
 
-    <struts2.version>6.8.0</struts2.version>
+    <struts2.version>7.3.0</struts2.version>
     <ognl.version>3.3.5</ognl.version>
     <commons-text.version>1.12.0</commons-text.version>
     <freemarker.version>2.3.33</freemarker.version>
 
-    <spring.version>5.3.39</spring.version>
-    <spring-security.version>5.3.13.RELEASE</spring-security.version>
-    <spring-security-oauth2.version>2.5.2.RELEASE</spring-security-oauth2.version>
+    <!--
+      Spring, Spring Security, Jackson and JUnit versions are now managed by their imported BOMs
+      below (spring-framework-bom, spring-security-bom, jackson-bom, junit-bom). The old hand-pinned
+      spring.version / spring-security.version / jackson.version / junit.version properties were
+      removed: a pinned version alongside its BOM silently overrides the BOM and reintroduces the
+      version skew the upgrade removes. Keep hand-pinned versions only for what no BOM manages.
+    -->
+    <spring-bom.version>6.2.1</spring-bom.version>
+    <spring-security-bom.version>6.3.5</spring-security-bom.version>
+    <jackson-bom.version>2.17.2</jackson-bom.version>
+    <junit-bom.version>5.10.3</junit-bom.version>
 
     <log4j2.version>2.26.0</log4j2.version>
-    <jackson.version>2.20.2</jackson.version>
 
-    <servlet-api.version>3.1.0</servlet-api.version>
-    <jstl.version>1.2</jstl.version>
-    <javax-annotation.version>1.3.2</javax-annotation.version>
+    <!-- Jakarta EE 10 coordinates (Tomcat 10.1 / Servlet 6.0). -->
+    <jakarta-servlet-api.version>6.0.0</jakarta-servlet-api.version>
+    <jakarta-jstl-api.version>3.0.0</jakarta-jstl-api.version>
+    <glassfish-jstl.version>3.0.1</glassfish-jstl.version>
+    <jakarta-annotation.version>2.1.1</jakarta-annotation.version>
 
     <ojdbc8.version>12.2.0.1</ojdbc8.version>
 
@@ -46,22 +54,14 @@
     <ezmorph.version>1.0.6</ezmorph.version>
 
     <h2.version>1.3.176</h2.version>
-    <aspectj.version>1.7.4</aspectj.version>
-    <junit.version>4.12</junit.version>
-    <mockito.version>1.9.5</mockito.version>
+    <aspectj.version>1.9.22.1</aspectj.version>
+    <mockito.version>5.14.2</mockito.version>
 
-    <jacoco.plugin.version>0.8.5</jacoco.plugin.version>
+    <jacoco.plugin.version>0.8.12</jacoco.plugin.version>
 
-    <!--
-      The packaging plugins are the one place the original pinned versions could not be kept.
-      maven-war-plugin 2.6 and maven-ear-plugin 2.8 date from 2015 and fail to load under Maven
-      3.9 with an API incompatibility in Plexus, so the build cannot run at all with them. The
-      versions below are the closest releases that work with the Maven in use; the packaging they
-      produce is the same. The original values are recorded here so the change is visible:
-        war.plugin.version = 2.6
-        ear.plugin.version = 2.8
-      Revert both if this reactor is ever built with a Maven 3.2-era toolchain again.
-    -->
+    <!-- Plugins that must move for Java 21 to build at all. -->
+    <compiler.plugin.version>3.13.0</compiler.plugin.version>
+    <surefire.plugin.version>3.2.5</surefire.plugin.version>
     <war.plugin.version>3.4.0</war.plugin.version>
     <ear.plugin.version>3.3.0</ear.plugin.version>
     <wildfly.plugin.version>2.0.2.Final</wildfly.plugin.version>
@@ -72,6 +72,41 @@
 
   <dependencyManagement>
     <dependencies>
+      <!-- ==================== Managed BOM imports ==================== -->
+      <!--
+        First declaration of a managed version wins in Maven, so the BOM imports are declared in
+        this order with any project-specific overrides placed before them. Each is type=pom,
+        scope=import.
+      -->
+      <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-framework-bom</artifactId>
+        <version>${spring-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.security</groupId>
+        <artifactId>spring-security-bom</artifactId>
+        <version>${spring-security-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <!-- ==================== AMS shared modules ==================== -->
       <dependency>
         <groupId>com.example.ams</groupId>
@@ -142,41 +177,11 @@
         <version>${freemarker.version}</version>
       </dependency>
 
-      <!-- ==================== Spring Framework ==================== -->
-      <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-framework-bom</artifactId>
-        <version>${spring.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <!-- ==================== Spring Security ==================== -->
-      <dependency>
-        <groupId>org.springframework.security</groupId>
-        <artifactId>spring-security-core</artifactId>
-        <version>${spring-security.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.security</groupId>
-        <artifactId>spring-security-config</artifactId>
-        <version>${spring-security.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.security</groupId>
-        <artifactId>spring-security-web</artifactId>
-        <version>${spring-security.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.security</groupId>
-        <artifactId>spring-security-taglibs</artifactId>
-        <version>${spring-security.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework.security.oauth</groupId>
-        <artifactId>spring-security-oauth2</artifactId>
-        <version>${spring-security-oauth2.version}</version>
-      </dependency>
+      <!-- ==================== Spring Security OAuth is not part of the Spring Security 6 BOM ==================== -->
+      <!--
+        spring-security-oauth2 2.5.x reached end of life and has no Spring Security 6 line; it is no
+        longer declared. Nothing in this reactor depended on it.
+      -->
 
       <!-- ==================== Logging ==================== -->
       <dependency>
@@ -196,10 +201,11 @@
       </dependency>
 
       <!-- ==================== JSON ==================== -->
+      <!-- jackson-databind version is aligned with the imported jackson-bom. -->
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
+        <version>${jackson-bom.version}</version>
       </dependency>
       <dependency>
         <groupId>net.sf.json-lib</groupId>
@@ -213,28 +219,33 @@
         <version>${ezmorph.version}</version>
       </dependency>
 
-      <!-- ==================== Java EE web ==================== -->
+      <!-- ==================== Jakarta EE 10 web ==================== -->
       <dependency>
-        <groupId>javax.servlet</groupId>
-        <artifactId>javax.servlet-api</artifactId>
-        <version>${servlet-api.version}</version>
+        <groupId>jakarta.servlet</groupId>
+        <artifactId>jakarta.servlet-api</artifactId>
+        <version>${jakarta-servlet-api.version}</version>
         <scope>provided</scope>
       </dependency>
       <dependency>
-        <groupId>jstl</groupId>
-        <artifactId>jstl</artifactId>
-        <version>${jstl.version}</version>
+        <groupId>jakarta.servlet.jsp.jstl</groupId>
+        <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
+        <version>${jakarta-jstl-api.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.web</groupId>
+        <artifactId>jakarta.servlet.jsp.jstl</artifactId>
+        <version>${glassfish-jstl.version}</version>
         <scope>runtime</scope>
       </dependency>
       <!--
-        The JSR-250 security annotations. the servlet container provides these at runtime, so the scope is
-        provided - but @EnableGlobalMethodSecurity(jsr250Enabled = true) needs them on the compile
-        and test classpath, or the security configuration cannot be built outside the container.
+        The JSR-250 security annotations. The servlet container provides these at runtime, so the
+        scope is provided - but method security needs them on the compile and test classpath, or the
+        security configuration cannot be built outside the container.
       -->
       <dependency>
-        <groupId>javax.annotation</groupId>
-        <artifactId>javax.annotation-api</artifactId>
-        <version>${javax-annotation.version}</version>
+        <groupId>jakarta.annotation</groupId>
+        <artifactId>jakarta.annotation-api</artifactId>
+        <version>${jakarta-annotation.version}</version>
         <scope>provided</scope>
       </dependency>
 
@@ -281,15 +292,22 @@
       </dependency>
 
       <!-- ==================== Test ==================== -->
+      <!-- junit-jupiter version is aligned with the imported junit-bom. -->
       <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>${junit.version}</version>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <version>${junit-bom.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
-        <artifactId>mockito-all</artifactId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-junit-jupiter</artifactId>
         <version>${mockito.version}</version>
         <scope>test</scope>
       </dependency>
@@ -299,10 +317,11 @@
         <version>${h2.version}</version>
         <scope>test</scope>
       </dependency>
+      <!-- spring-test version is aligned with the imported spring-framework-bom. -->
       <dependency>
         <groupId>org.springframework</groupId>
         <artifactId>spring-test</artifactId>
-        <version>${spring.version}</version>
+        <version>${spring-bom.version}</version>
         <scope>test</scope>
       </dependency>
     </dependencies>
@@ -315,18 +334,28 @@
       <artifactId>log4j-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
+      <artifactId>mockito-core</artifactId>
     </dependency>
   </dependencies>
 
   <build>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${compiler.plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${surefire.plugin.version}</version>
+        </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-war-plugin</artifactId>
@@ -364,39 +393,6 @@
   </build>
 
   <profiles>
-    <!--
-      What a build on a modern JDK needs and a Java 8 build must not see.
-
-      The application is Java 8. A JDK 8 javac compiles it with -source/-target 1.8 and the JVM runs
-      the tests with no module flags. On JDK 9 and later two things change. The compiler is told
-      "release 8", so it compiles against the Java 8 class library - with plain -source/-target it
-      would accept a Java 9+ API and the call would fail only at runtime on Java 8. And the pinned
-      Mockito bundles a cglib that predates the module system and defines its proxies through
-      ClassLoader.defineClass reflectively, so the test JVM has java.lang opened to it - a flag a
-      Java 8 JVM rejects at startup, which is why it lives here rather than in the main Surefire
-      configuration. Neither setting changes what is packaged: the class files are version 52 either
-      way.
-    -->
-    <profile>
-      <id>jdk9plus</id>
-      <activation>
-        <jdk>[9,)</jdk>
-      </activation>
-      <properties>
-        <maven.compiler.release>8</maven.compiler.release>
-      </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <configuration>
-              <argLine>--add-opens java.base/java.lang=ALL-UNNAMED</argLine>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
     <!-- Legacy leftover from an earlier application server; retained but never activated by CI. -->
     <profile>
       <id>local</id>
@@ -412,7 +408,7 @@
         </pluginManagement>
       </build>
     </profile>
-    <!-- Coverage is opt-in: the pinned JaCoCo agent predates the local JDK. -->
+    <!-- Coverage is opt-in. -->
     <profile>
       <id>coverage</id>
       <build>

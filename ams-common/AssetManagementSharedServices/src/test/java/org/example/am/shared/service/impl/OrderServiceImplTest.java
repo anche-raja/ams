@@ -1,12 +1,12 @@
 package org.example.am.shared.service.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -33,21 +33,28 @@ import org.example.am.shared.domain.OrderStatusType;
 import org.example.am.shared.domain.OrderType;
 import org.example.am.shared.domain.Timeslot;
 import org.example.am.shared.service.CalendarService;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
-import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.mockito.stubbing.Answer;
 
 /**
  * Unit test rather than an integration test: the point is what placing an install order writes and
  * how it behaves when the appointment is lost, not the SQL.
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+// The shared setUp() stubs insertOrder and the fixture collaborators; the detail-read tests
+// exercise a different method that does not consume those stubs. Lenient strictness keeps the
+// common fixture rather than splitting it per test.
+// TODO(migration): consider moving fixture stubs that only some tests need into those tests.
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class OrderServiceImplTest {
 
     private static final long CUSTOMER_ID = 1001L;
@@ -84,7 +91,7 @@ public class OrderServiceImplTest {
 
     private Order order;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         order = new Order();
         order.setOrderNumber("ORD-TEST");
@@ -112,18 +119,18 @@ public class OrderServiceImplTest {
     @Test
     public void placingWritesEverythingTheFlowCollected() {
         when(storedProcedureDAO.reserveTimeslot(anyLong(), anyLong(), anyString(),
-                Matchers.<Date>any(), anyString())).thenReturn("OK");
+                ArgumentMatchers.<Date>any(), anyString())).thenReturn("OK");
 
         assertEquals(NEW_ORDER_ID, orderService.placeInstallOrder(order, USER));
 
         assertEquals(OrderStatusType.SUBMITTED, order.getOrderStatusType());
-        verify(addressDAO).insertAddress(Matchers.<Address>any(), eq(USER));
-        verify(contactDAO).insertContact(Matchers.<Contact>any(), eq(USER));
+        verify(addressDAO).insertAddress(ArgumentMatchers.<Address>any(), eq(USER));
+        verify(contactDAO).insertContact(ArgumentMatchers.<Contact>any(), eq(USER));
         assertEquals(ContactType.INSTALLATION, order.getInstallationContact().getContactType());
-        verify(assetConfigDAO).insertOrderConfiguration(Matchers.<AssetConfiguration>any(),
+        verify(assetConfigDAO).insertOrderConfiguration(ArgumentMatchers.<AssetConfiguration>any(),
                 eq(NEW_ORDER_ID), eq(USER));
         verify(installationDAO).insertInstallation(eq(NEW_ORDER_ID), eq((Long) null),
-                Matchers.<Long>any(), Matchers.<Long>any(), eq(USER));
+                ArgumentMatchers.<Long>any(), ArgumentMatchers.<Long>any(), eq(USER));
         verify(requestDAO).recordEvent(eq(EventType.ORDER_SUBMITTED), eq(EmailEntityType.ORDER),
                 eq(NEW_ORDER_ID), anyString(), eq(USER));
         verify(storedProcedureDAO).addEntityEmail(eq("ORDER"), eq(NEW_ORDER_ID), eq("ORDCONF"),
@@ -142,14 +149,14 @@ public class OrderServiceImplTest {
                 ((Address) invocation.getArguments()[0]).setAddressId(Long.valueOf(501L));
                 return Long.valueOf(501L);
             }
-        }).when(addressDAO).insertAddress(Matchers.<Address>any(), anyString());
+        }).when(addressDAO).insertAddress(ArgumentMatchers.<Address>any(), anyString());
         doAnswer(new Answer<Long>() {
             @Override
             public Long answer(final InvocationOnMock invocation) {
                 ((Contact) invocation.getArguments()[0]).setContactId(Long.valueOf(601L));
                 return Long.valueOf(601L);
             }
-        }).when(contactDAO).insertContact(Matchers.<Contact>any(), anyString());
+        }).when(contactDAO).insertContact(ArgumentMatchers.<Contact>any(), anyString());
 
         orderService.placeInstallOrder(order, USER);
 
@@ -163,7 +170,7 @@ public class OrderServiceImplTest {
     @Test
     public void theAppointmentIsReservedAgainstTheOrder() {
         when(storedProcedureDAO.reserveTimeslot(eq(SLOT_ID), eq(NEW_ORDER_ID), eq("INSTALL"),
-                Matchers.<Date>any(), eq(USER))).thenReturn("OK");
+                ArgumentMatchers.<Date>any(), eq(USER))).thenReturn("OK");
 
         orderService.placeInstallOrder(order, USER);
 
@@ -179,7 +186,7 @@ public class OrderServiceImplTest {
     @Test
     public void losingTheAppointmentStillPlacesTheOrderUnscheduled() {
         when(storedProcedureDAO.reserveTimeslot(anyLong(), anyLong(), anyString(),
-                Matchers.<Date>any(), anyString())).thenReturn("NO_CAPACITY");
+                ArgumentMatchers.<Date>any(), anyString())).thenReturn("NO_CAPACITY");
 
         assertEquals(NEW_ORDER_ID, orderService.placeInstallOrder(order, USER));
 
@@ -195,7 +202,7 @@ public class OrderServiceImplTest {
         orderService.placeInstallOrder(order, USER);
 
         verify(storedProcedureDAO, never()).reserveTimeslot(anyLong(), anyLong(), anyString(),
-                Matchers.<Date>any(), anyString());
+                ArgumentMatchers.<Date>any(), anyString());
         assertNull(order.getRequestedInstallationDate());
     }
 
@@ -206,7 +213,7 @@ public class OrderServiceImplTest {
 
         orderService.placeInstallOrder(order, USER);
 
-        verify(contactDAO, never()).insertContact(Matchers.<Contact>any(), anyString());
+        verify(contactDAO, never()).insertContact(ArgumentMatchers.<Contact>any(), anyString());
     }
 
     @Test

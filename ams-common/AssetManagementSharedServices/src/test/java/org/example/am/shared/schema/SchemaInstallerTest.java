@@ -1,15 +1,15 @@
 package org.example.am.shared.schema;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
 import org.h2.jdbcx.JdbcDataSource;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * The acceptance gate for the schema, moved into the build.
@@ -23,7 +23,7 @@ public class SchemaInstallerTest {
     /** A distinct in-memory database per test, so ordering between tests cannot matter. */
     private JdbcDataSource dataSource;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         dataSource = new JdbcDataSource();
         dataSource.setURL("jdbc:h2:mem:schema-" + System.nanoTime()
@@ -36,16 +36,16 @@ public class SchemaInstallerTest {
     public void theSchemaAndCoreSeedInstallOnAnEmptyDatabase() throws Exception {
         new SchemaInstaller().install(dataSource);
 
-        assertEquals("tables", 35, count("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES "
-                + "WHERE TABLE_SCHEMA = 'PUBLIC' AND TABLE_TYPE = 'TABLE'"));
-        assertEquals("views", 1, count("SELECT COUNT(*) FROM INFORMATION_SCHEMA.VIEWS "
-                + "WHERE TABLE_SCHEMA = 'PUBLIC'"));
-        assertEquals("sequences", 19, count("SELECT COUNT(*) FROM INFORMATION_SCHEMA.SEQUENCES "
-                + "WHERE SEQUENCE_SCHEMA = 'PUBLIC'"));
-        assertEquals("foreign keys", 32, count("SELECT COUNT(*) FROM INFORMATION_SCHEMA.CONSTRAINTS "
-                + "WHERE CONSTRAINT_SCHEMA = 'PUBLIC' AND CONSTRAINT_TYPE = 'REFERENTIAL'"));
-        assertEquals("check constraints", 21, count("SELECT COUNT(*) FROM INFORMATION_SCHEMA.CONSTRAINTS "
-                + "WHERE CONSTRAINT_SCHEMA = 'PUBLIC' AND CONSTRAINT_TYPE = 'CHECK'"));
+        assertEquals(35, count("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES "
+                + "WHERE TABLE_SCHEMA = 'PUBLIC' AND TABLE_TYPE = 'TABLE'"), "tables");
+        assertEquals(1, count("SELECT COUNT(*) FROM INFORMATION_SCHEMA.VIEWS "
+                + "WHERE TABLE_SCHEMA = 'PUBLIC'"), "views");
+        assertEquals(19, count("SELECT COUNT(*) FROM INFORMATION_SCHEMA.SEQUENCES "
+                + "WHERE SEQUENCE_SCHEMA = 'PUBLIC'"), "sequences");
+        assertEquals(32, count("SELECT COUNT(*) FROM INFORMATION_SCHEMA.CONSTRAINTS "
+                + "WHERE CONSTRAINT_SCHEMA = 'PUBLIC' AND CONSTRAINT_TYPE = 'REFERENTIAL'"), "foreign keys");
+        assertEquals(21, count("SELECT COUNT(*) FROM INFORMATION_SCHEMA.CONSTRAINTS "
+                + "WHERE CONSTRAINT_SCHEMA = 'PUBLIC' AND CONSTRAINT_TYPE = 'CHECK'"), "check constraints");
     }
 
     /**
@@ -78,7 +78,7 @@ public class SchemaInstallerTest {
                         "UPDATE AMS_TIMESLOTS SET RESERVED_COUNT = 2 WHERE TIMESLOT_ID = 990001");
                 throw new AssertionError("an over-capacity write was accepted");
             } catch (final java.sql.SQLException expected) {
-                assertEquals("H2 check-constraint violation", 23513, expected.getErrorCode());
+                assertEquals(23513, expected.getErrorCode(), "H2 check-constraint violation");
             }
         }
     }
@@ -92,8 +92,8 @@ public class SchemaInstallerTest {
 
         installer.install(dataSource);
 
-        assertEquals("the seed was applied twice", customersAfterFirst,
-                count("SELECT COUNT(*) FROM AMS_CUSTOMERS"));
+        assertEquals(customersAfterFirst,
+                count("SELECT COUNT(*) FROM AMS_CUSTOMERS"), "the seed was applied twice");
     }
 
     @Test
@@ -102,8 +102,8 @@ public class SchemaInstallerTest {
 
         // The core tier alone carries only a handful of mappings; the demo tier is what gives a
         // local developer enough roles to reach any screen.
-        assertTrue("demo role mappings were not loaded",
-                count("SELECT COUNT(*) FROM AMS_LDAP_GROUP_ROLES") > 20);
+        assertTrue(count("SELECT COUNT(*) FROM AMS_LDAP_GROUP_ROLES") > 20,
+                "demo role mappings were not loaded");
     }
 
     @Test
@@ -113,13 +113,15 @@ public class SchemaInstallerTest {
         // The three conditions of Customer.isOrderingEnabled(), asked of the rows directly. The
         // core tier parks customers on the failing side of each one for the DAO tests; on a stack
         // somebody is clicking through, that reads as two customers out of three being broken.
-        assertEquals("a customer is inactive or has ordering switched off", 0,
+        assertEquals(0,
                 count("SELECT COUNT(*) FROM AMS_CUSTOMERS "
-                        + "WHERE ACTIVE_FL <> 'Y' OR CAN_SUBMIT_ORDERS_FL <> 'Y'"));
-        assertEquals("a customer has no active service", 0,
+                        + "WHERE ACTIVE_FL <> 'Y' OR CAN_SUBMIT_ORDERS_FL <> 'Y'"),
+                "a customer is inactive or has ordering switched off");
+        assertEquals(0,
                 count("SELECT COUNT(*) FROM AMS_CUSTOMERS c WHERE NOT EXISTS ("
                         + "SELECT 1 FROM AMS_SERVICES s WHERE s.CUSTOMER_ID = c.CUSTOMER_ID "
-                        + "AND s.SERVICE_STATUS_CD = 'ACTIVE')"));
+                        + "AND s.SERVICE_STATUS_CD = 'ACTIVE')"),
+                "a customer has no active service");
     }
 
     private int count(final String sql) throws Exception {
