@@ -1,7 +1,8 @@
 package org.example.am.internal.web.action;
 
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSession;
 
+import org.apache.struts2.interceptor.parameter.StrutsParameter;
 import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.internal.utils.InternalConstants;
 import org.example.am.internal.web.model.InstallOrderModel;
@@ -37,6 +38,10 @@ public abstract class InstallOrderBaseAction extends BaseAction {
      * @return the in-progress order from the session, creating an empty one for the current
      *         customer on first entry
      */
+    // Struts 7 no longer binds request parameters into a ModelDriven model unless getModel() is
+    // annotated. The forms submit nested properties such as siteAddress.city and
+    // assetConfiguration.wanIpAddress - two segments deep from the model root - so depth = 2.
+    @StrutsParameter(depth = 2)
     @Override
     public InstallOrderModel getModel() {
         final HttpSession session = getOrCreateSession();

@@ -1,9 +1,9 @@
 package org.example.am.internal.web.config;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -16,8 +16,8 @@ import java.util.Set;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -48,7 +48,7 @@ public class StrutsConfigurationTest {
 
     private static Document rootDocument;
 
-    @BeforeClass
+    @BeforeAll
     public static void parseConfiguration() throws Exception {
         final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setValidating(false);
@@ -67,7 +67,7 @@ public class StrutsConfigurationTest {
         rootDocument = builder.parse(new File(RESOURCES, "struts.xml"));
 
         final File[] files = RESOURCES.listFiles();
-        assertNotNull("No configuration files were found", files);
+        assertNotNull(files, "No configuration files were found");
         for (final File file : files) {
             if (!file.getName().startsWith("struts") || !file.getName().endsWith(".xml")) {
                 continue;
@@ -262,8 +262,8 @@ public class StrutsConfigurationTest {
     public void theEmptyExtensionIsAccepted() {
         final String extensions = getConstant("struts.action.extension");
         assertTrue(extensions.contains("action"));
-        assertTrue("The empty extension must be accepted for /health",
-                extensions.endsWith(",") || extensions.contains(",,"));
+        assertTrue(extensions.endsWith(",") || extensions.contains(",,"),
+                "The empty extension must be accepted for /health");
     }
 
     /** Every sub-configuration is actually included; one left out is silently dead. */

@@ -5,21 +5,27 @@ import org.springframework.util.StringUtils;
 /**
  * Connection settings for the settlement gateway.
  *
- * <p><b>Presentation demo - FORGE secret gate.</b> The credentials below are deliberately hardcoded
- * and fake. FORGE's local secret scan must stop this file in its pre-flight step, before any
- * Bedrock call - not even the guardrail sees it. The migration report lists the file as BLOCKED with
- * the kind and line of each finding, never the value. Leave it as it is: it is the control being
- * demonstrated.</p>
+ * <p>The gateway password and API key are supplied by the environment and read at startup; they
+ * are never hardcoded. The deployer sets {@code SETTLEMENT_GATEWAY_PASSWORD} and
+ * {@code SETTLEMENT_API_KEY}; the lookup fails fast when either is missing.</p>
  */
 public final class SettlementGatewayCredentials {
 
     private static final String GATEWAY_USER = "ams-settlement";
 
-    private static final String GATEWAY_PASSWORD = "Qx7!vR2#mLp9sT4w";
+    private static final String GATEWAY_PASSWORD = requiredEnv("SETTLEMENT_GATEWAY_PASSWORD");
 
-    private static final String SETTLEMENT_API_KEY = "9f3cE7kLq2Vx8RtY5bNw1ZsP4hJd6MgA";
+    private static final String SETTLEMENT_API_KEY = requiredEnv("SETTLEMENT_API_KEY");
 
     private SettlementGatewayCredentials() {
+    }
+
+    private static String requiredEnv(final String name) {
+        final String value = System.getenv(name);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("Missing required environment variable " + name);
+        }
+        return value;
     }
 
     public static String user() {

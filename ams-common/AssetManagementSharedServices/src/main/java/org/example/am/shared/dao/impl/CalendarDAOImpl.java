@@ -26,8 +26,14 @@ public class CalendarDAOImpl extends BaseDAO implements CalendarDAO {
           + "   AND H.HOLIDAY_DT <= :endDate "
           + " ORDER BY H.HOLIDAY_DT ";
 
+    // The bind is CAST to TIMESTAMP so TRUNC resolves to the date-truncation overload. H2 2.x
+    // optimises TRUNC() before the parameter value is bound, and a bare TRUNC(?) leaves it unable
+    // to tell the numeric overload from the date one ("Unknown data type: ?1"); the explicit CAST
+    // gives the parameter a type at parse time. Oracle accepts the same CAST, so the statement
+    // stays in the dialect subset both databases run.
     private static final String SELECT_HOLIDAY_COUNT =
-            "SELECT COUNT(*) FROM AMS_HOLIDAYS H WHERE TRUNC(H.HOLIDAY_DT) = TRUNC(:holidayDate) ";
+            "SELECT COUNT(*) FROM AMS_HOLIDAYS H "
+          + "WHERE TRUNC(H.HOLIDAY_DT) = TRUNC(CAST(:holidayDate AS TIMESTAMP)) ";
 
     /**
      * Only slots that are open and still have room are offered. The capacity comparison is done in
