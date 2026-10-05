@@ -1,6 +1,8 @@
 package org.example.am.internal.web.config;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,11 +21,13 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
 /**
  * The filter chain.
@@ -34,10 +38,22 @@ import org.springframework.security.web.header.writers.StaticHeadersWriter;
  * pre-authentication filter is chosen by profile, so the developer stub cannot be reached in
  * production. Third, the content security policy allows inline and eval'd script, which the
  * vendored Dojo build requires - tightening it means replacing that toolkit first.</p>
+ *
+ * <p>Built for Spring Security 6: the configuration is expressed as a
+ * {@link SecurityFilterChain} {@code @Bean} and an {@link AuthenticationManager} {@code @Bean},
+ * with the authorization rules in the lambda DSL ({@code authorizeHttpRequests} /
+ * {@code requestMatchers}). Every path pattern, authority, the CSRF matcher, the session policy,
+ * the 403 entry point and the header writers are preserved in their original order and meaning.</p>
+ *
+ * <p>The permitted paths are matched with {@link AntPathRequestMatcher} rather than the bare
+ * {@code requestMatchers(String...)} overload. This application routes through Struts, not Spring
+ * MVC, so there is no {@code HandlerMappingIntrospector} bean in the context; the string overload
+ * would try to build {@code MvcRequestMatcher}s in a web context and fail at startup. Ant matchers
+ * match on the servlet path exactly as the previous configuration did.</p>
  */
 @Configuration
 @EnableWebSecurity
-public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+public class WebSecurityConfig {
 
     private static final Logger LOGGER = LogManager.getLogger(WebSecurityConfig.class);
 
@@ -74,40 +90,47 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private Environment environment;
 
-    @Override
-    protected void configure(final HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain securityFilterChain(final HttpSecurity http) throws Exception {
         http
-            .csrf()
-                .requireCsrfProtectionMatcher(csrfTokenRequestMatcher())
-                .and()
+            .csrf(csrf -> csrf.requireCsrfProtectionMatcher(csrfTokenRequestMatcher()))
             .addFilter(preAuthenticatedProcessingFilter())
-            .authorizeRequests()
-                .antMatchers(PERMITTED_PATHS).permitAll()
+            .authorizeHttpRequests(authorize -> authorize
+                // The permitted paths carry trailing '*' wildcards, so Spring 6's PathPattern
+                // trailing-slash change does not open or close a path here; the health paths are
+                // listed with and without the .action suffix exactly as before. AntPathRequestMatcher
+                // is used explicitly because the application has no Spring MVC
+                // HandlerMappingIntrospector for the string overload to build MvcRequestMatchers.
+                .requestMatchers(permittedMatchers()).permitAll()
                 // Everything else needs an authenticated user. Which actions that user may then
                 // perform is decided per action by the role checks in BaseAction, because the role
                 // model is far too fine grained to express as URL patterns.
-                .anyRequest().hasAuthority(SecurityRoleType.ROLE_USER)
-                .and()
-            .httpBasic()
+                .anyRequest().hasAuthority(SecurityRoleType.ROLE_USER))
+            .httpBasic(httpBasic -> httpBasic
                 // 403 rather than a redirect: there is no login page to send anyone to.
-                .authenticationEntryPoint(new Http403ForbiddenEntryPoint())
-                .and()
-            .sessionManagement()
+                .authenticationEntryPoint(new Http403ForbiddenEntryPoint()))
+            .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .maximumSessions(MAX_CONCURRENT_SESSIONS)
-                .expiredUrl("/ams/invalidSessionError")
-                .and()
-                .and()
-            .headers()
-                .frameOptions().sameOrigin()
-                .xssProtection().and()
-                .contentTypeOptions().and()
-                .httpStrictTransportSecurity()
-                    .includeSubDomains(true)
-                    .and()
-                .cacheControl().and()
+                .expiredUrl("/ams/invalidSessionError"))
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.sameOrigin())
+                .xssProtection(xss -> { })
+                .contentTypeOptions(contentType -> { })
+                .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true))
+                .cacheControl(cache -> { })
                 .addHeaderWriter(new StaticHeadersWriter("Content-Security-Policy",
-                        CONTENT_SECURITY_POLICY));
+                        CONTENT_SECURITY_POLICY)));
+        return http.build();
+    }
+
+    /** The permitted paths as Ant matchers, in their original order. */
+    private static RequestMatcher[] permittedMatchers() {
+        final List<RequestMatcher> matchers = new ArrayList<>(PERMITTED_PATHS.length);
+        for (final String pattern : PERMITTED_PATHS) {
+            matchers.add(new AntPathRequestMatcher(pattern));
+        }
+        return matchers.toArray(new RequestMatcher[0]);
     }
 
     /**
@@ -131,7 +154,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         } else {
             filter = new WebSealRequestHeaderAuthenticationFilter();
         }
-        filter.setAuthenticationManager(authenticationManagerBean());
+        filter.setAuthenticationManager(authenticationManager());
         // A request without headers is not an error here; it simply fails the authorisation rules
         // further down the chain and is answered with a 403 by the entry point.
         filter.setContinueFilterChainOnUnsuccessfulAuthentication(true);
@@ -159,9 +182,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         return new RemoveRolesPrefixPostProcessor();
     }
 
-    @Override
     @Bean
-    public AuthenticationManager authenticationManagerBean() throws Exception {
+    public AuthenticationManager authenticationManager() {
         return new ProviderManager(Arrays.asList(
                 (org.springframework.security.authentication.AuthenticationProvider)
                         webSealAuthenticationProvider));

@@ -1,8 +1,8 @@
 package org.example.am.shared.helper;
 
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
  * test method in a transaction that is rolled back afterwards, so tests that insert rows do not
  * have to clean up after themselves and cannot see each other's writes.</p>
  */
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {
         "classpath:test-context-h2.xml",
         "classpath:test-context-scan.xml" })

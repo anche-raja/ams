@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.PathMatchConfigurer;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
@@ -29,10 +28,11 @@ import org.springframework.web.servlet.view.JstlView;
 public class ServletConfig implements WebMvcConfigurer {
 
     /*
-     * @EnableGlobalMethodSecurity is deliberately NOT here. It has to sit alongside the
-     * GlobalMethodSecurityConfiguration subclass it configures, which is GlobalSecurityConfig in
-     * the root context. Adding it here either fails to reach that subclass - the application then
-     * refuses to start - or builds a second, competing method security setup in this context.
+     * Method security is enabled in the root context (GlobalSecurityConfig), deliberately not
+     * here. It has to sit alongside the method-security configuration it configures, which lives
+     * in the root context. Enabling it in this DispatcherServlet context either fails to reach
+     * that configuration - the application then refuses to start - or builds a second, competing
+     * method security setup in this context.
      */
 
     private static final int STATIC_RESOURCE_CACHE_SECONDS = 600;
@@ -61,32 +61,36 @@ public class ServletConfig implements WebMvcConfigurer {
     }
 
     /**
-     * Extension based content negotiation.
+     * Content negotiation.
      *
-     * <p>The URLs this application has always exposed end in {@code .action}, and the AJAX
-     * endpoints are distinguished by suffix rather than by an {@code Accept} header, which is what
-     * the vendored Dojo build sends.</p>
+     * <p>Spring Framework 6 removed path-extension content negotiation
+     * ({@code favorPathExtension}/{@code useRegisteredExtensionsOnly}): suffix-based negotiation is
+     * no longer supported by the framework. The two DispatcherServlet endpoints here
+     * ({@code /error}, {@code /invalidSessionError}) are suffixless and return HTML views, so the
+     * default-content-type and explicit media-type mappings below are enough; the {@code .action}
+     * AJAX endpoints are served by the Struts filter, not this servlet, so they are unaffected.</p>
+     *
+     * <p>TODO(migration): confirm no DispatcherServlet-served endpoint relied on {@code .json} /
+     * {@code .html} suffix negotiation before adopting Spring 6's header-based negotiation
+     * deliberately.</p>
      */
     @Override
     public void configureContentNegotiation(final ContentNegotiationConfigurer configurer) {
-        configurer.favorPathExtension(true)
-                .ignoreAcceptHeader(false)
-                .useRegisteredExtensionsOnly(false)
+        configurer.ignoreAcceptHeader(false)
                 .defaultContentType(org.springframework.http.MediaType.TEXT_HTML)
                 .mediaType("html", org.springframework.http.MediaType.TEXT_HTML)
                 .mediaType("json", org.springframework.http.MediaType.APPLICATION_JSON);
     }
 
-    /**
-     * Keeps the legacy {@code AntPathMatcher} URL matching.
+    /*
+     * The old configurePathMatch override (which cleared the pattern parser to fall back to the
+     * legacy ant-style matcher and suffix pattern matching) is removed. Spring Framework 6 uses
+     * PathPatternParser exclusively and no longer supports that fallback. The two controller
+     * mappings here are exact, suffixless paths, so they resolve identically under
+     * PathPatternParser. The legacy .action suffix routing lives entirely in the Struts filter,
+     * which is unaffected by this change.
      *
-     * <p>Spring 5.3 switched the default to {@code PathPatternParser}, which does not do
-     * suffix pattern matching. Every mapping in this application predates that change, so the
-     * parser is explicitly cleared to fall back to the old matcher. Remove this only together with
-     * the {@code .action} suffixes themselves.</p>
+     * TODO(migration): the .action suffix routing is handled by Struts, not Spring MVC; verify no
+     * DispatcherServlet mapping depended on the old suffix-matching behaviour.
      */
-    @Override
-    public void configurePathMatch(final PathMatchConfigurer configurer) {
-        configurer.setPatternParser(null);
-    }
 }

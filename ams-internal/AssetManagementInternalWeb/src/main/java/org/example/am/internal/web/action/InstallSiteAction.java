@@ -13,7 +13,7 @@ import org.example.am.shared.domain.StateType;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import com.opensymphony.xwork2.Action;
+import org.apache.struts2.action.Action;
 
 /**
  * Step 1 of the install order: the site - where the device is fitted, and who meets the engineer.

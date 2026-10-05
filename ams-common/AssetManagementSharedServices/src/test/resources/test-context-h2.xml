@@ -19,15 +19,20 @@
     that described the same tables; it was the subset, missing both ledger tables and every
     constraint, and it is gone. Tests and the running server now load identical bytes.
 
-    Every statement the DAOs issue is written in the subset that both Oracle and H2 accept: DUAL,
-    SYSTIMESTAMP, sequence NEXTVAL, ROWNUM, NVL, GREATEST and TRUNC all behave the same in both,
-    which is why no MODE=Oracle is set.
+    The canonical DDL is Oracle: VARCHAR2(n CHAR), NUMBER, and the DAOs lean on DUAL, SYSTIMESTAMP,
+    sequence NEXTVAL, ROWNUM, NVL, GREATEST and TRUNC. H2 1.x happened to accept that subset in its
+    regular mode; H2 2.x tightened its parser and rejects the Oracle "CHAR" length qualifier (and
+    VARCHAR2/NUMBER) unless Oracle compatibility is requested, so the embedded URL now carries
+    MODE=Oracle. That keeps the test schema byte-identical to what Oracle installs - no second,
+    H2-only copy of the DDL - and leaves every DAO statement running against the same dialect.
 
-    MVCC and LOCK_TIMEOUT are not decoration. The scheduling DAOs take row locks with SELECT ...
-    FOR UPDATE, and the five-second bound that used to be "WAIT 5" in PL/SQL now lives on the URL.
+    LOCK_TIMEOUT is not decoration. The scheduling DAOs take row locks with SELECT ... FOR UPDATE,
+    and the five-second bound that used to be "WAIT 5" in PL/SQL now lives on the URL. H2 2.x is
+    multi-version concurrent by default, so the old MVCC=TRUE setting is gone - it is no longer a
+    recognised connection setting and H2 refuses a URL that still carries it.
   -->
   <jdbc:embedded-database id="dataSource" type="H2"
-                          database-name="ams;MVCC=TRUE;LOCK_TIMEOUT=5000">
+                          database-name="ams;MODE=Oracle;LOCK_TIMEOUT=5000">
 
     <jdbc:script location="classpath*:db/schema/01_tables/*.sql"/>
     <jdbc:script location="classpath*:db/schema/04_sequences/*.sql"/>
