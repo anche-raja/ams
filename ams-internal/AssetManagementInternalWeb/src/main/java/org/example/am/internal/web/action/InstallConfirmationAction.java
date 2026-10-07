@@ -1,13 +1,13 @@
 package org.example.am.internal.web.action;
 
+import org.apache.struts2.action.Action;
+import org.apache.struts2.interceptor.parameter.StrutsParameter;
 import org.example.am.internal.security.SecurityRoleType;
 import org.example.am.shared.domain.Order;
 import org.example.am.shared.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
-
-import com.opensymphony.xwork2.Action;
 
 /**
  * The receipt shown after an order is placed, and the view of any order from the home page.
@@ -53,6 +53,7 @@ public class InstallConfirmationAction extends BaseAction {
         return orderId;
     }
 
+    @StrutsParameter
     public void setOrderId(final Long orderId) {
         this.orderId = orderId;
     }
@@ -65,6 +66,7 @@ public class InstallConfirmationAction extends BaseAction {
         return appointmentLost;
     }
 
+    @StrutsParameter
     public void setAppointmentLost(final boolean appointmentLost) {
         this.appointmentLost = appointmentLost;
     }

@@ -1,11 +1,11 @@
 package org.example.am.internal.web.interceptors;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.example.am.internal.web.security.SpecialCharacterException;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -15,7 +15,7 @@ public class SpecialCharacterInterceptorTest {
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         interceptor = new SpecialCharacterInterceptor();
         request = new MockHttpServletRequest();

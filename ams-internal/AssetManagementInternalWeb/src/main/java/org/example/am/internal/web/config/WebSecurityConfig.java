@@ -19,11 +19,14 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.Http403ForbiddenEntryPoint;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 
 /**
  * The filter chain.
@@ -34,10 +37,23 @@ import org.springframework.security.web.header.writers.StaticHeadersWriter;
  * pre-authentication filter is chosen by profile, so the developer stub cannot be reached in
  * production. Third, the content security policy allows inline and eval'd script, which the
  * vendored Dojo build requires - tightening it means replacing that toolkit first.</p>
+ *
+ * <p>Migrated to Spring Security 6: the former configurer-adapter base class is replaced by a
+ * {@link SecurityFilterChain} bean and the lambda DSL. The authorization rules, their order, the
+ * CSRF matcher, session management, headers and the 403 entry point are preserved verbatim.
+ * X-XSS-Protection is kept at {@code 1; mode=block} rather than taking Spring Security 6's new
+ * default of {@code 0}, so the response headers match the Struts-side interceptor and the
+ * pre-migration behaviour.</p>
+ *
+ * <p>The permitted paths are matched with explicit {@link AntPathRequestMatcher}s. In Spring
+ * Security 6 a bare {@code requestMatchers(String...)} resolves to an MVC matcher and requires a
+ * {@code HandlerMappingIntrospector} from a Spring MVC {@code DispatcherServlet} context. This
+ * application routes through Struts, not Spring MVC, so there is no such context; ant matchers
+ * reproduce exactly the string-pattern matching the pre-migration configuration used.</p>
  */
 @Configuration
 @EnableWebSecurity
-public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+public class WebSecurityConfig {
 
     private static final Logger LOGGER = LogManager.getLogger(WebSecurityConfig.class);
 
@@ -74,40 +90,48 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private Environment environment;
 
-    @Override
-    protected void configure(final HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
         http
-            .csrf()
-                .requireCsrfProtectionMatcher(csrfTokenRequestMatcher())
-                .and()
+            .csrf(csrf -> csrf
+                .requireCsrfProtectionMatcher(csrfTokenRequestMatcher()))
             .addFilter(preAuthenticatedProcessingFilter())
-            .authorizeRequests()
-                .antMatchers(PERMITTED_PATHS).permitAll()
+            .authorizeHttpRequests(authorize -> authorize
+                .requestMatchers(permittedRequestMatchers()).permitAll()
                 // Everything else needs an authenticated user. Which actions that user may then
                 // perform is decided per action by the role checks in BaseAction, because the role
                 // model is far too fine grained to express as URL patterns.
-                .anyRequest().hasAuthority(SecurityRoleType.ROLE_USER)
-                .and()
-            .httpBasic()
+                .anyRequest().hasAuthority(SecurityRoleType.ROLE_USER))
+            .httpBasic(httpBasic -> httpBasic
                 // 403 rather than a redirect: there is no login page to send anyone to.
-                .authenticationEntryPoint(new Http403ForbiddenEntryPoint())
-                .and()
-            .sessionManagement()
+                .authenticationEntryPoint(new Http403ForbiddenEntryPoint()))
+            .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .maximumSessions(MAX_CONCURRENT_SESSIONS)
-                .expiredUrl("/ams/invalidSessionError")
-                .and()
-                .and()
-            .headers()
-                .frameOptions().sameOrigin()
-                .xssProtection().and()
-                .contentTypeOptions().and()
-                .httpStrictTransportSecurity()
-                    .includeSubDomains(true)
-                    .and()
-                .cacheControl().and()
+                .expiredUrl("/ams/invalidSessionError"))
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.sameOrigin())
+                // Content-Type-Options and Cache-Control are on by default in Spring Security 6,
+                // as they were explicitly enabled before. X-XSS-Protection defaults to "0" in 6;
+                // restored to the previous "1; mode=block" so the header is unchanged.
+                .xssProtection(xss -> xss
+                    .headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
+                .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true))
                 .addHeaderWriter(new StaticHeadersWriter("Content-Security-Policy",
-                        CONTENT_SECURITY_POLICY));
+                        CONTENT_SECURITY_POLICY)));
+        return http.build();
+    }
+
+    /**
+     * The permitted paths as explicit ant matchers, preserving the exact string patterns and their
+     * order. Built here rather than inline so the pattern list stays a single source of truth.
+     */
+    private static RequestMatcher[] permittedRequestMatchers() {
+        final RequestMatcher[] matchers = new RequestMatcher[PERMITTED_PATHS.length];
+        for (int i = 0; i < PERMITTED_PATHS.length; i++) {
+            matchers[i] = new AntPathRequestMatcher(PERMITTED_PATHS[i]);
+        }
+        return matchers;
     }
 
     /**
@@ -131,7 +155,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         } else {
             filter = new WebSealRequestHeaderAuthenticationFilter();
         }
-        filter.setAuthenticationManager(authenticationManagerBean());
+        filter.setAuthenticationManager(authenticationManager());
         // A request without headers is not an error here; it simply fails the authorisation rules
         // further down the chain and is answered with a 403 by the entry point.
         filter.setContinueFilterChainOnUnsuccessfulAuthentication(true);
@@ -159,9 +183,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         return new RemoveRolesPrefixPostProcessor();
     }
 
-    @Override
     @Bean
-    public AuthenticationManager authenticationManagerBean() throws Exception {
+    public AuthenticationManager authenticationManager() {
         return new ProviderManager(Arrays.asList(
                 (org.springframework.security.authentication.AuthenticationProvider)
                         webSealAuthenticationProvider));
