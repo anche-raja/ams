@@ -1,11 +1,11 @@
 package org.example.am.internal.web.security;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.example.am.internal.web.security.csrf.CSRFTokenRequestMatcher;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 public class CSRFTokenRequestMatcherTest {
@@ -14,7 +14,7 @@ public class CSRFTokenRequestMatcherTest {
 
     private CSRFTokenRequestMatcher matcher;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         matcher = new CSRFTokenRequestMatcher();
     }

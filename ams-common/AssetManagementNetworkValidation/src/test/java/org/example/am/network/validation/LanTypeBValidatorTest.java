@@ -1,18 +1,18 @@
 package org.example.am.network.validation;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class LanTypeBValidatorTest {
 
     private LanTypeBValidator validator;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         validator = new LanTypeBValidator();
     }
